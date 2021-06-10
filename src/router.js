@@ -6,6 +6,11 @@ export default createRouter({
     {
       path: '/',
       component: () => import('./views/Home.vue')
+    },
+    {
+      path: '/:name',
+      name: 'game',
+      component: () => import('./views/Game.vue')
     }
   ]
 })
