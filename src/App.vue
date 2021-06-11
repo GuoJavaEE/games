@@ -2,7 +2,7 @@
   <router-view />
 </template>
 
-<style>
+<style lang="less">
 * {
   box-sizing: border-box;
   padding: 0;
@@ -14,6 +14,7 @@ li {
 }
 
 a {
+  color: @content-color;
   text-decoration: none;
   -webkit-tap-highlight-color: transparent;
 }
@@ -25,5 +26,6 @@ a {
   min-height: 100vh;
   max-width: 480px;
   margin: 0 auto;
+  background-color: @background-color;
 }
 </style>
