@@ -1,9 +1,23 @@
-import { getPixRatio, getRandInt } from '../../utils'
+import { getPixRatio, getRandInt, delayCall } from '../../utils'
 
 import iconBlockEnd from './img/back.png'
 import iconBlockFront from './img/front.png'
 import iconBomb from './img/bomb.png'
 import iconFlag from './img/flag-color.png'
+
+interface Block {
+  row: number,
+  col: number,
+  num: number,
+  open?: boolean,
+  flag?: boolean
+}
+
+interface GameCallbacks {
+  onWinning?: Function,
+  onOver?: Function,
+  onUpdate?: (data: any) => void
+}
 
 const imgLoader = (src: string): Promise<HTMLImageElement> => {
   return new Promise((resolve, reject) => {
@@ -17,14 +31,6 @@ const imgLoader = (src: string): Promise<HTMLImageElement> => {
 }
 
 const icons: { [key: string]: string } = { iconBlockEnd, iconBlockFront, iconBomb, iconFlag }
-
-interface Block {
-  row: number,
-  col: number,
-  num: number,
-  open?: boolean,
-  flag?: boolean
-}
 
 const genArr = (len: number, val: any) => Array(len).fill(val)
 
@@ -85,20 +91,41 @@ class Game {
   blocks: Block[] = []
   icons: { [key: string]: HTMLImageElement } = {}
 
-  constructor (public cvs: HTMLCanvasElement) {
+  constructor (public cvs: HTMLCanvasElement, public callbacks: GameCallbacks = {}) {
     this.ctx = cvs.getContext('2d') as CanvasRenderingContext2D
     this.pixRatio = getPixRatio(this.ctx)
-    cvs.addEventListener('click', this.onClick.bind(this))
-    cvs.addEventListener('contextmenu', this.onContextmenu.bind(this))
   }
 
-  start (rows: number = 9, mineCount: number = 10, blockSpace: number = 6) {
-    this.rows = rows
-    this.mineCount = mineCount
-    this.blockSpace = blockSpace
+  addListeners () {
+    this.cvs.addEventListener('click', this.onClick.bind(this))
+    this.cvs.addEventListener('contextmenu', this.onContextmenu.bind(this))
+    window.addEventListener('resize', this.onResize.bind(this))
+  }
+
+  removeListeners () {
+    this.cvs.removeEventListener('click', this.onClick)
+    this.cvs.removeEventListener('contextmenu', this.onContextmenu)
+    window.removeEventListener('resize', this.onResize)
+  }
+
+  onResize () {
+    this.updateSize()
+    this.drawUI()
+  }
+
+  start (rows?: number, mineCount?: number, blockSpace?: number) {
+    if (rows) {
+      this.rows = rows
+    }
+    if (mineCount) {
+      this.mineCount = mineCount
+    }
+    if (blockSpace) {
+      this.blockSpace = blockSpace
+    }
     this.isGameover = false
     this.isFirstClick = true
-    this.blocks = genMineMap(rows, this.cols, mineCount)
+    this.blocks = genMineMap(this.rows, this.cols, this.mineCount)
     this.updateSize()
 
     if (this.isSourceLoaded) {
@@ -113,10 +140,13 @@ class Game {
       ).then(() => {
         this.isSourceLoaded = true
         this.drawUI()
+        this.addListeners()
       }).catch((e: Error) => {
         alert(e.message)
       })
     }
+
+    delayCall(this.callbacks.onUpdate, this.getStateData(), 0)
   }
 
   updateSize () {
@@ -154,13 +184,15 @@ class Game {
     const fontSize = blockSize / 2 + 'px'
     const color = ({ 1: '#ff0', 2: '#0f0' })[text] || '#f00'
     const fontWidth = ctx.measureText(text).width
-    const x = block.col * (blockSize + blockSpace) + blockSpace + (blockSize - fontWidth) / 2
-    const y = block.row * (blockSize + blockSpace) + blockSpace + (blockSize - fontWidth) / 2 - 4
+    const x = block.col * (blockSize + blockSpace) + blockSpace + (blockSize - fontWidth) / 2 + this.pixRatio
+    const y = block.row * (blockSize + blockSpace) + blockSpace + (blockSize - fontWidth) / 2
     ctx.save()
     ctx.font = `bold ${fontSize} serif`
-    ctx.textBaseline = 'hanging'
+    ctx.textAlign = "center"
+    ctx.textBaseline = 'middle'
     ctx.fillStyle = color
     ctx.fillText(text, x, y)
+    ctx.restore()
   }
 
   drawBlockIcon (block: Block, icon: HTMLImageElement) {
@@ -228,14 +260,35 @@ class Game {
         _.open = true
       }
     })
+    this.isGameover = true
   }
 
   openZeroBlocks (block: Block) {
-
+    const get = (row: number, col: number) => getBlock(this.blocks, row, col)
+    ;[
+      get(block.row - 1, block.col),
+      get(block.row, block.col + 1),
+      get(block.row + 1, block.col),
+      get(block.row, block.col - 1)
+    ].filter(_ => _).forEach(_ => {
+      if (!_?.open && !_?.flag && _?.num === 0) {
+        _.open = true
+        this.openZeroBlocks(_)
+      }
+    })
   }
 
-  checkResult () {
-    
+  isDone () {
+    return this.blocks.filter(_ => _.num < 9).every(_ => _.open)
+  }
+
+  getStateData () {
+    return this.blocks.reduce((t, _) => {
+      return {
+        opens: t.opens + (_.open ? 1 : 0),
+        flags: t.flags + (_.flag ? 1 : 0)
+      }
+    }, { opens: 0, flags: 0 })
   }
 
   onClick (event: MouseEvent) {
@@ -251,15 +304,26 @@ class Game {
     block.open = true
     if (block.num === 9) {
       this.bombAndOver()
+      delayCall(this.callbacks.onOver)
     } else if (block.num === 0) {
       this.openZeroBlocks(block)
     }
+    delayCall(this.callbacks.onUpdate, this.getStateData(), 0)
     this.drawUI()
-    this.checkResult()
+    if (this.isDone()) {
+      this.isGameover = true
+      delayCall(this.callbacks.onWinning)
+    }
   }
 
   onContextmenu (event: MouseEvent) {
-
+    event.preventDefault()
+    if (this.isGameover) return
+    const block = this.getCurBlock(event)
+    if (!block || block.open) return
+    block.flag = !block.flag
+    this.drawUI()
+    delayCall(this.callbacks.onUpdate, this.getStateData(), 0)
   }
 }
 

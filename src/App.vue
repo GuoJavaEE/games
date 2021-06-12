@@ -18,6 +18,10 @@ a, canvas {
   -webkit-tap-highlight-color: transparent;
 }
 
+canvas {
+  user-select: none;
+}
+
 a {
   color: @content-color;
   text-decoration: none;

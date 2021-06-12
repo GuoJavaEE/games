@@ -12,14 +12,21 @@
 <script lang="ts">
 import Game from './game'
 export default {
-  data () {
-    return {
-      grid: { rows: 9, cols: 9, count: 10 }
-    }
-  },
   mounted () {
-    const game = new Game(this.$refs.ui)
-    console.log(game.start())
+    const game = new Game(this.$refs.ui, {
+      onUpdate: (data: any) => {
+        console.log(data)
+      },
+      onOver: () => {
+        alert('很遗憾，挑战失败！')
+        game.start()
+      },
+      onWinning: () => {
+        alert('恭喜你！挑战成功')
+        game.start(game.cols + 2, game.mineCount + 2)
+      }
+    })
+    game.start()
   }
 }
 </script>
