@@ -1,7 +1,7 @@
 <template>
   <div class="container">
     <div class="dashboard">
-      <h2 class="title">仪表盘</h2>
+      <div class="title">扫雷游戏</div>
     </div>
     <div class="game-ui">
       <canvas ref="ui" />
@@ -48,5 +48,9 @@ export default {
 canvas {
   width: 100%;
   background-color: mix(@primary-color, #fff, 20%);
+}
+.title {
+  color: #fff;
+  font-size: 1.5em;
 }
 </style>

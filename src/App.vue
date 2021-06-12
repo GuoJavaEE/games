@@ -9,6 +9,10 @@
   margin: 0;
 }
 
+html {
+  font-size: 13px;
+}
+
 li {
   list-style: none;
 }
