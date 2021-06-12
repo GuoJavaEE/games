@@ -1,4 +1,11 @@
-export default {
+import { AsyncComponentLoader } from 'vue'
+
+interface GameItemValue {
+  name: string,
+  component: AsyncComponentLoader
+}
+
+const games: { [key: string]: GameItemValue } = {
   2048: {
     name: '2048',
     component: () => import('./2048/Index.vue')
@@ -36,3 +43,7 @@ export default {
     component: () => import('./xxk/Index.vue')
   }
 }
+
+export default games
+
+export const getGame = (name: string) => games[name]

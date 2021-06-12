@@ -4,16 +4,16 @@
   </div>
 </template>
 
-<script>
+<script lang="ts">
 import { defineAsyncComponent } from 'vue'
-import games from '../components/games'
+import { getGame } from '../components'
 export default {
   name: 'Game',
   computed: {
     item () {
-      return games[this.$route.params.name]
+      return getGame(this.$route.params.name as string)
     },
-    curView () {
+    curView (): any {
       return this.item ? defineAsyncComponent(this.item.component) : null
     }
   }

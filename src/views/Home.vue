@@ -8,8 +8,8 @@
   </div>
 </template>
 
-<script>
-import games from '../components/games'
+<script lang="ts">
+import games from '../components'
 export default {
   data () {
     return { games }
