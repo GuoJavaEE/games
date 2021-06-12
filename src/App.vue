@@ -13,10 +13,14 @@ li {
   list-style: none;
 }
 
+a, canvas {
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
 a {
   color: @content-color;
   text-decoration: none;
-  -webkit-tap-highlight-color: transparent;
 }
 
 #app {

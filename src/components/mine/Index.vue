@@ -19,7 +19,7 @@ export default {
   },
   mounted () {
     const game = new Game(this.$refs.ui)
-    console.log(game.genBlocks())
+    console.log(game.start())
   }
 }
 </script>
@@ -32,7 +32,7 @@ export default {
 }
 .dashboard {
   padding: 10px;
-  background-color: @title-color;
+  background-color: @content-color;
 }
 .game-ui {
   flex: 1;
@@ -40,6 +40,6 @@ export default {
 }
 canvas {
   width: 100%;
-  height: 100%;
+  background-color: mix(@primary-color, #fff, 20%);
 }
 </style>

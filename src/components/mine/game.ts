@@ -1,8 +1,29 @@
+import { getPixRatio } from '../../utils'
+
+import iconBlockEnd from './img/back.png'
+import iconBlockFront from './img/front.png'
+import iconBomb from './img/bomb.png'
+import iconFlag from './img/flag-color.png'
+
+const imgLoader = (src: string): Promise<HTMLImageElement> => {
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    img.onload = () => {
+      resolve(img)
+    }
+    img.onerror = reject
+    img.src = src
+  })
+}
+
+const icons: { [key: string]: string } = { iconBlockEnd, iconBlockFront, iconBomb, iconFlag }
+
 interface Block {
   row: number,
   col: number,
   num: number,
-  open?: boolean
+  open?: boolean,
+  flag?: boolean
 }
 
 const genArr = (len: number, val: any) => Array(len).fill(val)
@@ -50,42 +71,131 @@ const genMineMap = (rows: number, cols: number, mineCount: number): Block[] => {
   return blocks
 }
 
-console.log(genMineMap(9, 9, 10).map(_ => _.num))
+class Game {
+  pixRatio: number
+  ctx: CanvasRenderingContext2D
+  blockSize: number = 0
+  rows: number = 9
+  cols: number = 9
+  mineCount: number = 10
+  blockSpace: number = 6
+  isGameover: boolean = false
+  isFirstClick: boolean = true
+  blocks: Block[] = []
+  icons: { [key: string]: HTMLImageElement } = {}
 
-export default class {
-  constructor (el, options = {}) {
-    this.el = typeof el === 'string' ? document.querySelector(el) : el
-    this.rows = options.rows || 9
-    this.cols = options.cols || 9
-    this.mineCount = options.mineCount || 10
-    this.blocks = []
+  constructor (public cvs: HTMLCanvasElement) {
+    this.ctx = cvs.getContext('2d') as CanvasRenderingContext2D
+    this.pixRatio = getPixRatio(this.ctx)
   }
 
-  start (options = {}) {
-    
+  start (rows: number = 9, mineCount: number = 10, blockSpace: number = 6) {
+    this.rows = rows
+    this.mineCount = mineCount
+    this.blockSpace = blockSpace
+    this.isGameover = false
+    this.isFirstClick = true
+    this.blocks = genMineMap(rows, this.cols, mineCount)
+    this.updateSize()
+
+    Promise.all(
+      Object.keys(icons).map(k => {
+        return imgLoader(icons[k]).then(_ => {
+          this.icons[k] = _
+        })
+      })
+    ).then(() => {
+      this.drawUI()
+    }).catch((e: Error) => {
+      alert(e.message)
+    })
+  }
+
+  updateSize () {
+    const { blockSpace } = this
+    const width = this.cvs.offsetWidth
+    const cvsWidth = width * this.pixRatio
+    const blockSize = (cvsWidth - blockSpace) / this.cols - blockSpace
+    const maxHeight = (this.cvs.parentElement?.offsetHeight as number) * this.pixRatio
+    if (this.rows * (blockSize + blockSpace) + blockSpace > maxHeight) {
+      this.rows = Math.floor(maxHeight / (blockSize + blockSpace))
+    }
+    this.blockSize = blockSize
+    this.cvs.width = cvsWidth
+    this.cvs.height = this.rows * (blockSize + blockSpace) + blockSpace
+  }
+
+  drawBlockBackground (block: Block, icon: HTMLImageElement) {
+    const { blockSize, blockSpace } = this
+    this.ctx.drawImage(
+      icon,
+      0,
+      0,
+      icon.width,
+      icon.height,
+      block.col * blockSize + (block.col + 1) * blockSpace,
+      block.row * blockSize + (block.row + 1) * blockSpace,
+      blockSize,
+      blockSize
+    )
+  }
+
+  drawBlockText (block: Block) {
+    const text = block.num + ''
+    const { blockSize, blockSpace, ctx } = this
+    const fontSize = blockSize / 2 + 'px'
+    const color = ({ 1: '#ff0', 2: '#0f0' })[text] || '#f00'
+    const fontWidth = ctx.measureText(text).width
+    const x = block.col * (blockSize + blockSpace) + blockSpace + (blockSize - fontWidth) / 2
+    const y = block.row * (blockSize + blockSpace) + blockSpace + (blockSize - fontWidth) / 2 - 4
+    ctx.save()
+    ctx.font = `bold ${fontSize} serif`
+    ctx.textBaseline = 'hanging'
+    ctx.fillStyle = color
+    ctx.fillText(text, x, y)
+  }
+
+  drawBlockIcon (block: Block, icon: HTMLImageElement) {
+    const { blockSize, blockSpace } = this
+    let dw
+    let dh
+    if (icon.width > icon.height) {
+      dw = blockSize / 2
+      dh = dw * (icon.height / icon.width)
+    } else {
+      dh = blockSize / 2
+      dw = dh * (icon.width / icon.height)
+    }
+    this.ctx.drawImage(
+      icon,
+      block.col * (blockSize + blockSpace) + blockSpace + (blockSize - dw) / 2,
+      block.row * (blockSize + blockSpace) + blockSpace + (blockSize - dh) / 2,
+      dw,
+      dh
+    )
   }
 
   drawUI () {
-
-  }
-
-  genMineMap (block) {
-    
-  }
-
-  genBlocks () {
-    return new Array(this.rows)
-      .fill(0)
-      .reduce((t, a, row) => {
-        return t.concat(
-          new Array(this.cols)
-            .fill(0)
-            .map((b, col) => ({ row, col }))
-        )
-      }, [])
-  }
-
-  getBlock (event) {
-
+    const { width, height } = this.cvs
+    this.ctx.clearRect(0, 0, width, height)
+    this.blocks.forEach(_ => {
+      if (_.open) {
+        this.drawBlockBackground(_, this.icons['iconBlockEnd'])
+        if (_.num > 0) {
+          if (_.num < 9) {
+            this.drawBlockText(_)
+          } else {
+            this.drawBlockIcon(_, this.icons['iconBomb'])
+          }
+        }
+      } else {
+        this.drawBlockBackground(_, this.icons['iconBlockFront'])
+        if (_.flag) {
+          this.drawBlockIcon(_, this.icons['iconFlag'])
+        }
+      }
+    })
   }
 }
+
+export default Game
