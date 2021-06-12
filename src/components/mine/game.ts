@@ -1,4 +1,4 @@
-import { getPixRatio } from '../../utils'
+import { getPixRatio, getRandInt } from '../../utils'
 
 import iconBlockEnd from './img/back.png'
 import iconBlockFront from './img/front.png'
@@ -81,12 +81,15 @@ class Game {
   blockSpace: number = 6
   isGameover: boolean = false
   isFirstClick: boolean = true
+  isSourceLoaded: boolean = false
   blocks: Block[] = []
   icons: { [key: string]: HTMLImageElement } = {}
 
   constructor (public cvs: HTMLCanvasElement) {
     this.ctx = cvs.getContext('2d') as CanvasRenderingContext2D
     this.pixRatio = getPixRatio(this.ctx)
+    cvs.addEventListener('click', this.onClick.bind(this))
+    cvs.addEventListener('contextmenu', this.onContextmenu.bind(this))
   }
 
   start (rows: number = 9, mineCount: number = 10, blockSpace: number = 6) {
@@ -98,17 +101,22 @@ class Game {
     this.blocks = genMineMap(rows, this.cols, mineCount)
     this.updateSize()
 
-    Promise.all(
-      Object.keys(icons).map(k => {
-        return imgLoader(icons[k]).then(_ => {
-          this.icons[k] = _
-        })
-      })
-    ).then(() => {
+    if (this.isSourceLoaded) {
       this.drawUI()
-    }).catch((e: Error) => {
-      alert(e.message)
-    })
+    } else {
+      Promise.all(
+        Object.keys(icons).map(k => {
+          return imgLoader(icons[k]).then(_ => {
+            this.icons[k] = _
+          })
+        })
+      ).then(() => {
+        this.isSourceLoaded = true
+        this.drawUI()
+      }).catch((e: Error) => {
+        alert(e.message)
+      })
+    }
   }
 
   updateSize () {
@@ -195,6 +203,63 @@ class Game {
         }
       }
     })
+  }
+
+  getCurBlock (event: MouseEvent): Block | undefined {
+    const ex = (event.offsetX || event.pageX) * this.pixRatio
+    const ey = (event.offsetY || event.pageY) * this.pixRatio
+    const col = Math.floor(ex / (this.blockSize + this.blockSpace))
+    const row = Math.floor(ey / (this.blockSize + this.blockSpace))
+    return this.blocks.find(_ => _.row === row && _.col === col)
+  }
+
+  swapBlockNum (block: Block) {
+    const blocks = this.blocks.filter(_ => _.num < 9)
+    const index = getRandInt(0, blocks.length - 1)
+    const item = blocks[index]
+    const { num } = item
+    item.num = block.num
+    block.num = num
+  }
+
+  bombAndOver () {
+    this.blocks.forEach(_ => {
+      if (_.num === 9) {
+        _.open = true
+      }
+    })
+  }
+
+  openZeroBlocks (block: Block) {
+
+  }
+
+  checkResult () {
+    
+  }
+
+  onClick (event: MouseEvent) {
+    if (this.isGameover) return
+    const block = this.getCurBlock(event)
+    if (!block || block.open || block.flag) return
+    if (this.isFirstClick) {
+      this.isFirstClick = false
+      if (block.num === 9) {
+        this.swapBlockNum(block)
+      }
+    }
+    block.open = true
+    if (block.num === 9) {
+      this.bombAndOver()
+    } else if (block.num === 0) {
+      this.openZeroBlocks(block)
+    }
+    this.drawUI()
+    this.checkResult()
+  }
+
+  onContextmenu (event: MouseEvent) {
+
   }
 }
 

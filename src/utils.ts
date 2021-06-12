@@ -4,3 +4,7 @@ export const getPixRatio = (context: CanvasRenderingContext2D) => {
     context.mozBackingStorePixelRatio || 1
   return (window.devicePixelRatio || 1) / backingStore
 }
+
+export const getRandInt = (min: number, max: number) => {
+  return Math.floor(Math.random() * (max - min + 1) + min)
+}
