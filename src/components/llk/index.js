@@ -19,27 +19,6 @@ class Game {
     this.drawUI()
   }
 
-  findWay(b1, b2) {
-    return this.lineDirect(b1, b2) || this.oneCorner(b1, b2) || this.twoCorner(b1, b2)
-  }
-
-  lineDirect(b1, b2) {
-    let arr = []
-    if (b1.row !== b2.row && b1.col !== b2.col) return false
-    if (b1.col === b2.col) {
-      arr = this.blocks.filter(_ => _ && _.col === b1.col)
-      arr = b1.row > b2.row ?
-        arr.filter(_ => _.row < b1.row && _.row > b2.row) :
-        arr.filter(_ => _.row > b1.row && _.row < b2.row)
-    } else if (b1.row === b2.row) {
-      arr = this.blocks.filter(_ => _ && _.row === b1.row)
-      arr = b1.col > b2.col ?
-        arr.filter(_ => _.col < b1.col && _.col > b2.col) :
-        arr.filter(_ => _.col > b1.col && _.col < b2.col)
-    }
-    return arr.every(_ => !_.num) ? [] : false
-  }
-
   oneCorner(b1, b2) {
     let c = this.blocks.find(_ => _ && _.row === b1.row && _.col === b2.col)
     if (!c.num && this.lineDirect(b1, c) && this.lineDirect(c, b2)) return [c]

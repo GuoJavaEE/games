@@ -122,20 +122,43 @@ class Game {
     return Math.round(b1.dx) === Math.round(b2.dx) && Math.round(b1.dy) === Math.round(b2.dy)
   }
 
-  getBlockCenter (block: Block): [number, number] {
+  getBlockCenter (block: Block) {
     const { blockSize, blockSpace } = this
-    return [
-      (block.col + 1) * blockSize + (block.col - 1) * blockSpace,
-      (block.row + 1) * blockSize + (block.row - 1) * blockSpace
-    ]
+    return {
+      x: (block.col + 1) * blockSize + (block.col - 1) * blockSpace,
+      y: (block.row + 1) * blockSize + (block.row - 1) * blockSpace
+    }
   }
 
   findWay (b1: Block, b2: Block) {
     return this.lineDirect(b1, b2) || this.oneCorner(b1, b2) || this.twoCorner(b1, b2)
   }
 
-  lineDirect (b1: Block, b2: Block): any {
-
+  lineDirect (b1: Block, b2: Block) {
+    const results = [b1, b2].map(this.getBlockCenter.bind(this))
+    if (b1.row === b2.row) {
+      const arr = this.blocks.filter(_ => _.row === b1.row)
+      if (b1.col < b2.col) {
+        if (arr.filter(_ => _.col > b1.col && _.col < b2.col).every(_ => _.removed)) {
+          return results
+        }
+      } else {
+        if (arr.filter(_ => _.col > b2.col && _.col < b1.col).every(_ => _.removed)) {
+          return results
+        }
+      }
+    } else if (b1.col === b2.col) {
+      const arr = this.blocks.filter(_ => _.col === b1.col)
+      if (b1.row < b2.row) {
+        if (arr.filter(_ => _.row > b1.row && _.row < b2.row).every(_ => _.removed)) {
+          return results
+        }
+      } else {
+        if (arr.filter(_ => _.row > b2.row && _.row < b1.row).every(_ => _.removed)) {
+          return results
+        }
+      }
+    }
   }
 
   oneCorner (b1: Block, b2: Block) {
@@ -150,27 +173,30 @@ class Game {
     const { blockSize, blockSpace } = this
     this.ctx.clearRect(0, 0, this.cvs.width, this.cvs.height)
     this.blocks.forEach(_ => {
-      this.ctx.drawImage(
-        _.img,
-        _.dx,
-        _.dy,
-        _.dw,
-        _.dw,
-        blockSize / 2 + _.col * blockSize + (_.col - 1) * blockSpace,
-        blockSize / 2 + _.row * blockSize + (_.row - 1) * blockSpace,
-        blockSize,
-        blockSize
-      )
+      if (!_.removed) {
+        this.ctx.drawImage(
+          _.img,
+          _.dx,
+          _.dy,
+          _.dw,
+          _.dw,
+          blockSize / 2 + _.col * blockSize + (_.col - 1) * blockSpace,
+          blockSize / 2 + _.row * blockSize + (_.row - 1) * blockSpace,
+          blockSize,
+          blockSize
+        )
+      }
     })
     this.selectedBlock && this.drawArc(this.selectedBlock)
   }
 
   drawArc (block: Block, alpha = .6) {
+    const { x, y } = this.getBlockCenter(block)
     const { ctx } = this
     ctx.save()
     ctx.fillStyle = `rgba(0,0,0,${alpha})`
     ctx.beginPath()
-    ctx.arc(...this.getBlockCenter(block), this.blockSize / 2, 0, Math.PI * 2)
+    ctx.arc(x, y, this.blockSize / 2, 0, Math.PI * 2)
     ctx.closePath()
     ctx.fill()
     ctx.restore()
@@ -193,11 +219,15 @@ class Game {
       if (selectedBlock) {
         if (block === selectedBlock) return
         if (this.isSameBlock(selectedBlock, block)) {
-          const finds = this.findWay(selectedBlock, block)
+          const coords = this.findWay(selectedBlock, block)
+          if (coords) {
+            selectedBlock.removed = block.removed = true
+            this.selectedBlock = undefined
+            return this.drawUI()
+          }
         }
-      } else {
-        this.selectedBlock = block
       }
+      this.selectedBlock = block
       this.drawUI()
     }
   }
