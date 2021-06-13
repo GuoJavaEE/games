@@ -1,23 +1,4 @@
 class Game {
-  initUI({ rows, cols, imgOptions = {} }) {
-    rows = rows || cols
-    if ((rows * cols) / (imgOptions.rows * imgOptions.cols)  % 2) {
-      throw new Error('行和列的积除以雪碧图的行和列的积必须是2的倍数.')
-    }
-    this.rows = rows + 2
-    this.cols = cols + 2
-    this.imgOptions = imgOptions
-    this.blockSpace = this.pixRatio * 3
-    this.selBlock = null
-    this.joinPoints = []
-    this.updateSize()
-    utils.imageLoad(imgOptions.src).then(img => {
-      this.img = img
-      this.blocks = this.genBlocks()
-      this.drawUI()
-    })
-  }
-
   onClick(event) {
     let curBlock = this.getCurBlock(event)
     if (!curBlock || this.selBlock === curBlock) return
@@ -36,14 +17,6 @@ class Game {
     }
     this.selBlock = curBlock
     this.drawUI()
-  }
-
-  isSameBlock(b1, b2) {
-    return b1.dx === b2.dx && b1.dy === b2.dy
-  }
-
-  getCenter(block) {
-    return [block.x + block.w / 2, block.y + block.h / 2]
   }
 
   findWay(b1, b2) {
@@ -129,24 +102,6 @@ class Game {
     this.drawUI()
   }
 
-  drawUI() {
-    this.context.clearRect(0, 0, this.width, this.height)
-    this.blocks.forEach(_ => {
-      _ && _.num && this.context.drawImage(this.img, _.dx, _.dy, _.dw, _.dw, _.x, _.y, _.w, _.h)
-    })
-    if (this.selBlock) this.drawArc(this.selBlock)
-  }
-
-  drawArc(block, alpha = .6) {
-    this.context.save()
-    this.context.fillStyle = `rgba(0, 0, 0, ${alpha})`
-    this.context.beginPath()
-    this.context.arc(...this.getCenter(block), block.w / 2, 0, Math.PI * 2)
-    this.context.closePath()
-    this.context.fill()
-    this.context.restore()
-  }
-
   drawJoinLines(blocks) {
     let { context, selBlock: b1, pixRatio } = this, b2 = blocks[0]
     if (blocks.length === 1 && (Math.abs(b1.row - b2.row) === 1 || Math.abs(b1.col - b2.col) === 1)) return
@@ -158,17 +113,6 @@ class Game {
     blocks.forEach(_ => this.context.lineTo(...this.getCenter(_)))
     context.stroke()
     context.restore()
-  }
-
-  getCurBlock(event) {
-    let ex = (event.offsetX || event.pageX) * this.pixRatio
-    let ey = (event.offsetY || event.pageY) * this.pixRatio
-    return this.blocks.find(_ => {
-      if (!_) return
-      let x = _.x + _.w / 2
-      let y = _.y + _.h / 2
-      return _.num && (ex - x) * (ex - x)+(ey - y) * (ey - y) < _.w * _.h / 4
-    })
   }
 }
 

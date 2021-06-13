@@ -39,6 +39,8 @@ class Game {
   pixRatio: number = 1
   blockSize: number = 0
   blockSpace: number = 0
+  blocks: Block[] = []
+  selectedBlock: Block | undefined
 
   constructor (public cvs: HTMLCanvasElement, public callbacks: GameCallbacks = {}) {
     this.ctx = cvs.getContext('2d') as CanvasRenderingContext2D
@@ -56,9 +58,10 @@ class Game {
 
     this.updateSize()
     this.genBlocks().then(result => {
-      console.log(result)
+      this.blocks = result
+      this.drawUI()
+      this.addListeners()
     })
-    this.drawUI()
   }
 
   updateSize () {
@@ -82,7 +85,7 @@ class Game {
       const arr = genArr(opt.rows).reduce((t, a, row) => {
         return t.concat(
           genArr(opt.cols).map((b, col) => {
-            return { dw, img, dx: dw * col, dy: dw * col }
+            return { dw, img, dx: dw * col, dy: dw * row }
           })
         )
       }, [])
@@ -104,8 +107,73 @@ class Game {
     })
   }
 
-  drawUI () {
+  getCurBlock (event: MouseEvent) {
+    const ex = (event.offsetX || event.pageX) * this.pixRatio
+    const ey = (event.offsetY || event.pageY) * this.pixRatio
+    const { blockSize, blockSpace } = this
+    return this.blocks.filter(_ => !_.removed).find(_ => {
+      const x = (_.col - 1) * blockSpace + (_.col + 1) * blockSize
+      const y = (_.row - 1) * blockSpace + (_.row + 1) * blockSize
+      return Math.pow(ex - x, 2) + Math.pow(ey - y, 2) < Math.pow(blockSize / 2, 2)
+    })
+  }
 
+  isSameBlock (b1: Block, b2: Block) {
+    return Math.round(b1.dx) === Math.round(b2.dx) && Math.round(b1.dy) === Math.round(b2.dy)
+  }
+
+  getBlockCenter (block: Block): [number, number] {
+    const { blockSize, blockSpace } = this
+    return [
+      (block.col + 1) * blockSize + (block.col - 1) * blockSpace,
+      (block.row + 1) * blockSize + (block.row - 1) * blockSpace
+    ]
+  }
+
+  findWay (b1: Block, b2: Block) {
+    return this.lineDirect(b1, b2) || this.oneCorner(b1, b2) || this.twoCorner(b1, b2)
+  }
+
+  lineDirect (b1: Block, b2: Block): any {
+
+  }
+
+  oneCorner (b1: Block, b2: Block) {
+
+  }
+
+  twoCorner (b1: Block, b2: Block) {
+
+  }
+
+  drawUI () {
+    const { blockSize, blockSpace } = this
+    this.ctx.clearRect(0, 0, this.cvs.width, this.cvs.height)
+    this.blocks.forEach(_ => {
+      this.ctx.drawImage(
+        _.img,
+        _.dx,
+        _.dy,
+        _.dw,
+        _.dw,
+        blockSize / 2 + _.col * blockSize + (_.col - 1) * blockSpace,
+        blockSize / 2 + _.row * blockSize + (_.row - 1) * blockSpace,
+        blockSize,
+        blockSize
+      )
+    })
+    this.selectedBlock && this.drawArc(this.selectedBlock)
+  }
+
+  drawArc (block: Block, alpha = .6) {
+    const { ctx } = this
+    ctx.save()
+    ctx.fillStyle = `rgba(0,0,0,${alpha})`
+    ctx.beginPath()
+    ctx.arc(...this.getBlockCenter(block), this.blockSize / 2, 0, Math.PI * 2)
+    ctx.closePath()
+    ctx.fill()
+    ctx.restore()
   }
 
   addListeners () {
@@ -119,11 +187,24 @@ class Game {
   }
 
   onClick (event: MouseEvent) {
-
+    const block = this.getCurBlock(event)
+    if (block) {
+      const { selectedBlock } = this
+      if (selectedBlock) {
+        if (block === selectedBlock) return
+        if (this.isSameBlock(selectedBlock, block)) {
+          const finds = this.findWay(selectedBlock, block)
+        }
+      } else {
+        this.selectedBlock = block
+      }
+      this.drawUI()
+    }
   }
 
   onResize () {
-
+    this.updateSize()
+    this.drawUI()
   }
 }
 
