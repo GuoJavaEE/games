@@ -12,8 +12,13 @@
 <script lang="ts">
 import Game from './game'
 export default {
+  data (): { game: Game | null } {
+    return {
+      game: null
+    }
+  },
   mounted () {
-    const game = new Game(this.$refs.ui, {
+    const game = new Game(this.$refs.ui as HTMLCanvasElement, {
       onUpdate: (data: any) => {
         console.log(data)
       },
@@ -27,6 +32,13 @@ export default {
       }
     })
     game.start()
+    this.game = game
+  },
+  unmounted () {
+    if (this.game) {
+      this.game.removeListeners()
+      this.game = null
+    }
   }
 }
 </script>

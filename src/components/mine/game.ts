@@ -1,4 +1,4 @@
-import { getPixRatio, getRandInt, delayCall } from '../../utils'
+import { getPixRatio, getRandInt, delayCall, imgLoader, genArr } from '../../utils'
 
 import iconBlockEnd from './img/back.png'
 import iconBlockFront from './img/front.png'
@@ -19,20 +19,7 @@ interface GameCallbacks {
   onUpdate?: (data: any) => void
 }
 
-const imgLoader = (src: string): Promise<HTMLImageElement> => {
-  return new Promise((resolve, reject) => {
-    const img = new Image()
-    img.onload = () => {
-      resolve(img)
-    }
-    img.onerror = reject
-    img.src = src
-  })
-}
-
 const icons: { [key: string]: string } = { iconBlockEnd, iconBlockFront, iconBomb, iconFlag }
-
-const genArr = (len: number, val: any) => Array(len).fill(val)
 
 const getBlock = (blocks: Block[], row: number, col: number) => {
   return blocks.find(_ => _.row === row && _.col === col)

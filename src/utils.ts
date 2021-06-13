@@ -14,3 +14,28 @@ export const delayCall = (fn?: Function, data?: any, delay: number = 100) => {
     fn(data)
   }, delay)
 }
+
+export const imgLoader = (src: string): Promise<HTMLImageElement> => {
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    img.onload = () => {
+      resolve(img)
+    }
+    img.onerror = reject
+    img.src = src
+  })
+}
+
+export const genArr = (len: number, val: any) => Array(len).fill(val)
+
+export const getCenterAppr = (num: number) => {
+  const result = Math.sqrt(num)
+  if (Number.isInteger(result)) {
+    return [result, result]
+  }
+  for (let i = Math.floor(result); i > 0; i--) {
+    if (num % i === 0) {
+      return [i, num / i]
+    }
+  }
+}
