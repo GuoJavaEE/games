@@ -223,6 +223,14 @@ class Game {
   }
 
   drawJoinLine (coords: [number, number][]) {
+    if (coords.length === 2) {
+      const [a, b] = coords
+      const space = this.blockSize + this.blockSpace
+      if (
+        !Math.round(Math.abs(a[0] - b[0]) - space) ||
+        !Math.round(Math.abs(a[1] - b[1]) - space)
+      ) return
+    }
     const { ctx } = this
     ctx.save()
     ctx.strokeStyle = '#555'
@@ -255,6 +263,7 @@ class Game {
         if (this.isSameBlock(selectedBlock, block)) {
           const coords = this.findWay(selectedBlock, block)
           if (coords) {
+            this.drawArc(block)
             selectedBlock.removed = block.removed = true
             this.selectedBlock = undefined
             this.drawJoinLine(coords)
