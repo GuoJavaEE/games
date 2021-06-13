@@ -66,7 +66,7 @@ export default {
 }
 canvas {
   width: 100%;
-  background-color: mix(@primary-color, #fff, 20%);
+  background-color: mix(@success-color, #fff, 10%);
 }
 .title {
   color: #fff;
@@ -78,7 +78,7 @@ canvas {
     background-color: @primary-color;
     color: #fff;
     border: none;
-    padding: 7px 12px;
+    padding: 6px 12px;
     margin-left: 10px;
     cursor: pointer;
     &:hover {

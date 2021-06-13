@@ -96,14 +96,22 @@ class Game {
   }
 
   genBlocks (): Promise<Block[]> {
+    const { blockSize } = this
     return this.genSpriteItems().then(result => {
-      return genArr(this.rows).reduce((t, a, row) => {
+      const arr: any[] = genArr(this.rows).reduce((t, a, row) => {
         return t.concat(
           genArr(this.cols).map((b, col) => {
-            return { row, col }
+            return { row: row + 1, col: col + 1 }
           })
         )
       }, []).map((_: any, i: number) => ({ ..._, ...result[i] }))
+      return [
+        ...arr,
+        ...genArr(this.rows + 2).map((_, row) => ({ row, col: 0, removed: true })),
+        ...genArr(this.rows + 2).map((_, row) => ({ row, col: this.cols + 1, removed: true })),
+        ...genArr(this.cols + 2).map((_, col) => ({ col, row: 0, removed: true })),
+        ...genArr(this.cols + 2).map((_, col) => ({ col, row: this.rows + 1, removed: true }))
+      ].sort((a, b) => (a.row - b.row )|| (a.col - b.col))
     })
   }
 
@@ -112,8 +120,8 @@ class Game {
     const ey = (event.offsetY || event.pageY) * this.pixRatio
     const { blockSize, blockSpace } = this
     return this.blocks.filter(_ => !_.removed).find(_ => {
-      const x = (_.col - 1) * blockSpace + (_.col + 1) * blockSize
-      const y = (_.row - 1) * blockSpace + (_.row + 1) * blockSize
+      const x = (_.col - 1) * blockSpace + (_.col) * blockSize
+      const y = (_.row - 1) * blockSpace + (_.row) * blockSize
       return Math.pow(ex - x, 2) + Math.pow(ey - y, 2) < Math.pow(blockSize / 2, 2)
     })
   }
@@ -124,10 +132,30 @@ class Game {
 
   getBlockCenter (block: Block): [number, number] {
     const { blockSize, blockSpace } = this
-    return [
-      (block.col + 1) * blockSize + (block.col - 1) * blockSpace,
-      (block.row + 1) * blockSize + (block.row - 1) * blockSpace
-    ]
+    return block.col === 0
+      ? [
+        blockSize / 4,
+        block.row * blockSize + (block.row - 1) * blockSpace
+      ]
+      : block.row === 0
+        ? [
+          block.col * blockSize + (block.col - 1) * blockSpace,
+          blockSize / 4
+        ]
+        : block.col === this.cols + 1
+          ? [
+            block.col * blockSize + (block.col - 1) * blockSpace - blockSize / 4,
+            block.row * blockSize + (block.row - 1) * blockSpace
+          ]
+          : block.row === this.rows + 1
+            ? [
+              block.col * blockSize + (block.col - 1) * blockSpace,
+              block.row * blockSize + (block.row - 1) * blockSpace - blockSize / 4
+            ]
+            : [
+              block.col * blockSize + (block.col - 1) * blockSpace,
+              block.row * blockSize + (block.row - 1) * blockSpace
+            ]
   }
 
   rinse () {
@@ -187,7 +215,6 @@ class Game {
   }
 
   twoCorner (b1: Block, b2: Block) {
-    const { blockSize } = this
     const sameRows = this.blocks.filter(_ => _.row === b1.row)
     const sameCols = this.blocks.filter(_ => _.col === b1.col)
     const topBlocks = sameCols.filter(_ => _.row < b1.row)
@@ -245,8 +272,8 @@ class Game {
           _.dy,
           _.dw,
           _.dw,
-          blockSize / 2 + _.col * blockSize + (_.col - 1) * blockSpace,
-          blockSize / 2 + _.row * blockSize + (_.row - 1) * blockSpace,
+          blockSize / 2 + (_.col - 1) * blockSize + (_.col - 1) * blockSpace,
+          blockSize / 2 + (_.row - 1) * blockSize + (_.row - 1) * blockSpace,
           blockSize,
           blockSize
         )
@@ -311,15 +338,15 @@ class Game {
             selectedBlock.removed = block.removed = true
             this.selectedBlock = undefined
             this.drawJoinLine(coords)
-            return setTimeout(this.drawUI.bind(this), 200)
+            return setTimeout(() => {
+              this.drawUI()
+              this.blocks.every(_ => _.removed) && delayCall(this.callbacks.onDone)
+            }, 200)
           }
         }
       }
       this.selectedBlock = block
       this.drawUI()
-      if (this.blocks.every(_ => _.removed)) {
-        delayCall(this.callbacks.onDone)
-      }
     }
   }
 
