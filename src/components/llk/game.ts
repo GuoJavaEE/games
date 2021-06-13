@@ -187,7 +187,51 @@ class Game {
   }
 
   twoCorner (b1: Block, b2: Block) {
-
+    const { blockSize } = this
+    const sameRows = this.blocks.filter(_ => _.row === b1.row)
+    const sameCols = this.blocks.filter(_ => _.col === b1.col)
+    const topBlocks = sameCols.filter(_ => _.row < b1.row)
+    const rightBlocks = sameRows.filter(_ => _.col > b1.col)
+    const bottomBlocks = sameCols.filter(_ => _.row > b1.row)
+    const leftBlocks = sameRows.filter(_ => _.col < b1.col)
+    const getResults = (block: Block) => {
+      const coords = this.oneCorner(block, b2)
+      if (coords) {
+        return [b1, block].map(this.getBlockCenter.bind(this)).concat(coords.slice(1))
+      }
+    }
+    for (let i = topBlocks.length - 1; i >= 0; i--) {
+      const block = topBlocks[i]
+      if (!block.removed) break
+      const results = getResults(block)
+      if (results) {
+        return results
+      }
+    }
+    for (let i = 0; i < rightBlocks.length; i++) {
+      const block = rightBlocks[i]
+      if (!block.removed) break
+      const results = getResults(block)
+      if (results) {
+        return results
+      }
+    }
+    for (let i = 0; i < bottomBlocks.length; i++) {
+      const block = bottomBlocks[i]
+      if (!block.removed) break
+      const results = getResults(block)
+      if (results) {
+        return results
+      }
+    }
+    for (let i = leftBlocks.length - 1; i >= 0; i--) {
+      const block = leftBlocks[i]
+      if (!block.removed) break
+      const results = getResults(block)
+      if (results) {
+        return results
+      }
+    }
   }
 
   drawUI () {
