@@ -2,6 +2,10 @@
   <div class="container">
     <div class="dashboard">
       <div class="title">经典连连看</div>
+      <div class="btns">
+        <button @click="onReStart">重新开始</button>
+        <button @click="onRinse">洗 牌</button>
+      </div>
     </div>
     <div class="game-ui">
       <canvas ref="ui" />
@@ -33,6 +37,14 @@ export default {
       this.game.removeListeners()
       this.game = null
     }
+  },
+  methods: {
+    onRinse () {
+      this.game?.rinse()
+    },
+    onReStart () {
+      this.game?.start()
+    }
   }
 }
 </script>
@@ -46,6 +58,7 @@ export default {
 .dashboard {
   padding: 10px;
   background-color: @content-color;
+  display: flex;
 }
 .game-ui {
   flex: 1;
@@ -58,5 +71,19 @@ canvas {
 .title {
   color: #fff;
   font-size: 1.5em;
+  flex: 1;
+}
+.btns {
+  button {
+    background-color: @primary-color;
+    color: #fff;
+    border: none;
+    padding: 7px 12px;
+    margin-left: 10px;
+    cursor: pointer;
+    &:hover {
+      background-color: mix(#fff, @primary-color, 10%);
+    }
+  }
 }
 </style>
