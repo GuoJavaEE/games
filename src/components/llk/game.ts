@@ -1,4 +1,4 @@
-import { imgLoader, getCenterAppr, getPixRatio } from '../../utils'
+import { imgLoader, getCenterAppr, getPixRatio, genArr } from '../../utils'
 
 import iconSprite from './img/sprite.png'
 
@@ -7,23 +7,17 @@ interface GameCallbacks {
   onFailed?: Function
 }
 
-interface Block {
-  row: number,
-  col: number,
-  dx: number,
-  dy: number,
-  dw: number,
-  x: number,
-  y: number,
-  w: number,
-  h: number,
-  removed?: boolean
-}
-
 interface SpriteItem {
   dx: number,
   dy: number,
-  dw: number
+  dw: number,
+  img: HTMLImageElement
+}
+
+interface Block extends SpriteItem {
+  row: number,
+  col: number,
+  removed?: boolean
 }
 
 interface SpriteOptions {
@@ -61,6 +55,9 @@ class Game {
     }
 
     this.updateSize()
+    this.genBlocks().then(result => {
+      console.log(result)
+    })
     this.drawUI()
   }
 
@@ -76,6 +73,35 @@ class Game {
     this.blockSize = Math.min(rowBlockSize, colBlockSize)
     this.cvs.width = cvsWidth
     this.cvs.height = (this.rows + 1) * this.blockSize + (this.rows - 1) * this.blockSpace
+  }
+
+  genSpriteItems (): Promise<SpriteItem[]> {
+    const opt = this.imgOptions
+    return imgLoader(opt.src).then(img => {
+      const dw = img.width / opt.cols
+      const arr = genArr(opt.rows).reduce((t, a, row) => {
+        return t.concat(
+          genArr(opt.cols).map((b, col) => {
+            return { dw, img, dx: dw * col, dy: dw * col }
+          })
+        )
+      }, [])
+      return genArr(this.repeatCount).reduce(t => {
+        return t.concat(arr)
+      }, []).sort(() => Math.random() - .5)
+    })
+  }
+
+  genBlocks (): Promise<Block[]> {
+    return this.genSpriteItems().then(result => {
+      return genArr(this.rows).reduce((t, a, row) => {
+        return t.concat(
+          genArr(this.cols).map((b, col) => {
+            return { row, col }
+          })
+        )
+      }, []).map((_: any, i: number) => ({ ..._, ...result[i] }))
+    })
   }
 
   drawUI () {

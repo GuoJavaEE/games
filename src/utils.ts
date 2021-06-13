@@ -26,7 +26,7 @@ export const imgLoader = (src: string): Promise<HTMLImageElement> => {
   })
 }
 
-export const genArr = (len: number, val: any) => Array(len).fill(val)
+export const genArr = (len: number, val?: any) => Array(len).fill(val)
 
 export const getCenterAppr = (num: number) => {
   const result = Math.sqrt(num)

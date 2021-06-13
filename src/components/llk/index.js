@@ -113,50 +113,6 @@ class Game {
     return this.blocks.every(_ => !(_ && _.num)) && setTimeout(onDone, 100)
   }
 
-  createSprites() {
-    let sprites = [], rtnSprites = [], { img, imgOptions } = this
-    let dw = img.width / imgOptions.cols
-    for (let row = 0; row < imgOptions.rows; row++) {
-      for (let col = 0; col < imgOptions.cols; col++) {
-        sprites.push({ dx: dw * col, dy: dw * row, dw })
-      }
-    }
-    let len = (this.rows - 2) * (this.cols - 2) / sprites.length
-    for (let i = 0; i < len; i++) rtnSprites.push(...sprites)
-    rtnSprites.sort(() => Math.random() - .5)
-    return rtnSprites
-  }
-
-  genBlocks() {
-    let blocks = [], sprites = this.createSprites(), count = 0
-    let { rows, cols, blockSize: w, blockSpace: space } = this
-    for (let row = 0; row < rows; row++) {
-      for (let col = 0; col < cols; col++) {
-        let x = (w + space) * (col - 1) + space + w / 2
-        let y = (w + space) * (row - 1) + space + w / 2
-        if ((col === 0 && row === 0) || 
-          (col === cols - 1 && row === 0) || 
-          (col === 0 && row === rows - 1) || 
-          (col === cols - 1 && row === rows - 1)) {
-          blocks.push(null)
-        } else if (col === 0) {
-          blocks.push({ row, col, num: 0, x: 0, y, w: w / 2, h: w })
-        } else if (col === cols - 1) {
-          blocks.push({ row, col, num: 0, x, y, w: w / 2, h: w })
-        } else if (row === 0) {
-          blocks.push({ row, col, num: 0, x, y: 0, w, h: w / 2 })
-        } else if (row === rows - 1) {
-          blocks.push({ row, col, num: 0, x, y, w, h: w / 2 })
-        } else {
-          let { dx, dy, dw } = sprites[count]
-          blocks.push({ row, col, dx, dy, dw, num: 1, x, y, w, h: w })
-          count++
-        }
-      }
-    }
-    return blocks
-  }
-
   rinse() {
     this.selBlock = null
     let coords = [], count = 0
