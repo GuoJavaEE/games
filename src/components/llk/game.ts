@@ -122,12 +122,25 @@ class Game {
     return Math.round(b1.dx) === Math.round(b2.dx) && Math.round(b1.dy) === Math.round(b2.dy)
   }
 
-  getBlockCenter (block: Block) {
+  getBlockCenter (block: Block): [number, number] {
     const { blockSize, blockSpace } = this
-    return {
-      x: (block.col + 1) * blockSize + (block.col - 1) * blockSpace,
-      y: (block.row + 1) * blockSize + (block.row - 1) * blockSpace
-    }
+    return [
+      (block.col + 1) * blockSize + (block.col - 1) * blockSpace,
+      (block.row + 1) * blockSize + (block.row - 1) * blockSpace
+    ]
+  }
+
+  rinse () {
+    this.selectedBlock = undefined
+    const blocks = this.blocks.filter(_ => !_.removed)
+    const coords = blocks.map(_ => ({ dx: _.dx, dy: _.dy }))
+    coords.sort(_ => Math.random() - .5)
+    blocks.forEach((_, i) => {
+      const c = coords[i]
+      _.dx = c.dx
+      _.dy = c.dy
+    })
+    this.drawUI()
   }
 
   findWay (b1: Block, b2: Block) {
@@ -161,8 +174,16 @@ class Game {
     }
   }
 
-  oneCorner (b1: Block, b2: Block) {
-
+  oneCorner (b1: Block, b3: Block) {
+    const getResults = (b: Block) => [b1, b, b3].map(this.getBlockCenter.bind(this))
+    let b2 = this.blocks.find(_ => _.row === b1.row && _.col === b3.col)
+    if (b2?.removed && this.lineDirect(b1, b2) && this.lineDirect(b2, b3)) {
+      return getResults(b2)
+    }
+    b2 = this.blocks.find(_ => _.row === b3.row && _.col === b1.col)
+    if (b2?.removed && this.lineDirect(b1, b2) && this.lineDirect(b2, b3)) {
+      return getResults(b2)
+    }
   }
 
   twoCorner (b1: Block, b2: Block) {
@@ -191,14 +212,27 @@ class Game {
   }
 
   drawArc (block: Block, alpha = .6) {
-    const { x, y } = this.getBlockCenter(block)
     const { ctx } = this
     ctx.save()
     ctx.fillStyle = `rgba(0,0,0,${alpha})`
     ctx.beginPath()
-    ctx.arc(x, y, this.blockSize / 2, 0, Math.PI * 2)
+    ctx.arc(...this.getBlockCenter(block), this.blockSize / 2, 0, Math.PI * 2)
     ctx.closePath()
     ctx.fill()
+    ctx.restore()
+  }
+
+  drawJoinLine (coords: [number, number][]) {
+    const { ctx } = this
+    ctx.save()
+    ctx.strokeStyle = '#555'
+    ctx.lineWidth = this.pixRatio
+    ctx.beginPath()
+    ctx.moveTo(...coords[0])
+    coords.slice(1).forEach(_ => {
+      ctx.lineTo(..._)
+    })
+    ctx.stroke()
     ctx.restore()
   }
 
@@ -223,7 +257,8 @@ class Game {
           if (coords) {
             selectedBlock.removed = block.removed = true
             this.selectedBlock = undefined
-            return this.drawUI()
+            this.drawJoinLine(coords)
+            return setTimeout(this.drawUI.bind(this), 200)
           }
         }
       }
