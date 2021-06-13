@@ -1,1 +1,0 @@
-import{_ as e}from"./index.0b9c3ec4.js";const n={mine:{name:"经典扫雷",component:()=>e((()=>import("./Index.3cb3406f.js")),["./assets/Index.3cb3406f.js","./assets/Index.c9f9462d.css","./assets/vendor.eda28678.js"])}},o=e=>n[e];export{o as a,n as g};
