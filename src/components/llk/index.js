@@ -31,9 +31,4 @@ class Game {
       if (arr) return [_, ...arr]
     }
   }
-
-  doneCheck() {
-    let { onDone = () => {} } = this.callbacks
-    return this.blocks.every(_ => !(_ && _.num)) && setTimeout(onDone, 100)
-  }
 }

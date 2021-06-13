@@ -18,7 +18,8 @@ export default {
   mounted () {
     const game = new Game(this.$refs.ui as HTMLCanvasElement, {
       onDone: () => {
-
+        alert('恭喜你，挑战成功！')
+        game.start()
       },
       onFailed: () => {
         

@@ -1,4 +1,4 @@
-import { imgLoader, getCenterAppr, getPixRatio, genArr } from '../../utils'
+import { imgLoader, getCenterAppr, getPixRatio, genArr, delayCall } from '../../utils'
 
 import iconSprite from './img/sprite.png'
 
@@ -273,6 +273,9 @@ class Game {
       }
       this.selectedBlock = block
       this.drawUI()
+      if (this.blocks.every(_ => _.removed)) {
+        delayCall(this.callbacks.onDone)
+      }
     }
   }
 
