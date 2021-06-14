@@ -26,10 +26,10 @@ const games: { [key: string]: GameItemValue } = {
   //   name: '经典拼图',
   //   component: () => import('./pintu/Index.vue')
   // },
-  // snake: {
-  //   name: '经典贪吃蛇',
-  //   component: () => import('./snake/Index.vue')
-  // },
+  snake: {
+    name: '经典贪吃蛇',
+    component: () => import('./snake/Index.vue')
+  },
   // sudoku: {
   //   name: '数独',
   //   component: () => import('./sudoku/Index.vue')
