@@ -4,7 +4,7 @@
       <div class="title">经典贪吃蛇</div>
       <div class="btns">
         <button @click="onStart">开始游戏</button>
-        <button @click="onPause">暂 停</button>
+        <button @click="onTogglePause">{{ isStop ? '继 续' : '暂 停' }}</button>
       </div>
     </div>
     <div class="game-ui">
@@ -15,9 +15,13 @@
 
 <script lang="ts">
 import Game from './game'
+interface Data {
+  game: Game | null,
+  isStop: boolean
+}
 export default {
-  data (): { game: Game | null } {
-    return { game: null }
+  data (): Data {
+    return { game: null, isStop: false }
   },
   mounted () {
     const game = new Game(this.$refs.ui as HTMLCanvasElement, {
@@ -39,11 +43,17 @@ export default {
     }
   },
   methods: {
-    onPause () {
-      this.game?.pause()
+    onTogglePause () {
+      this.isStop = !this.isStop
+      if (this.isStop) {
+        this.game?.pause()
+      } else {
+        this.game?.unpause()
+      }
     },
     onStart () {
       this.game?.start()
+      this.isStop = false
     }
   }
 }
