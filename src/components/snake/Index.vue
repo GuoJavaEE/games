@@ -29,7 +29,7 @@ export default {
         alert(`游戏结束！你共吃掉${count}块食物，请点击[开始游戏]按钮，重新开始游戏`)
       }
     })
-    game.start()
+    game.init()
     this.game = game
   },
   unmounted () {

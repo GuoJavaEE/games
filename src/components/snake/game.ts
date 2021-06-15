@@ -119,6 +119,7 @@ class Food extends Block {
 }
 
 class Game {
+  gridCvs: HTMLCanvasElement
   ctx: CanvasRenderingContext2D
   pixRatio: number
   rows: number = 20
@@ -134,6 +135,8 @@ class Game {
     this.pixRatio = getPixRatio(this.ctx)
     this.lineWidth = this.pixRatio
     this.addListeners()
+
+    this.gridCvs = this.createGridCvs(cvs)
   }
 
   addListeners () {
@@ -144,6 +147,23 @@ class Game {
   removeListeners () {
     this.cvs.removeEventListener('click', this.onClick)
     window.removeEventListener('resize', this.onResize)
+  }
+
+  createGridCvs (cvs: HTMLCanvasElement) {
+    const canvas = document.createElement('canvas')
+    const parentEl = cvs.parentElement as HTMLElement
+    canvas.style.position = 'absolute'
+    canvas.style.top = '0'
+    canvas.style.left = '0'
+    canvas.style.width = '100%'
+    canvas.style.pointerEvents = 'none'
+    const parentStyle = window.getComputedStyle(parentEl)
+    console.log(parentStyle.position)
+    if (['absolute', 'relative', 'fixed'].indexOf(parentStyle.position) < 0) {
+      parentEl.style.position = 'relative'
+    }
+    parentEl.appendChild(canvas)
+    return canvas
   }
 
   onClick (event: MouseEvent) {
@@ -173,15 +193,24 @@ class Game {
   onResize () {
     this.updateSize()
     this.drawUI()
+    this.drawGrid()
   }
 
-  start (rows?: number, cols?: number) {
-    this.status = GameStatusEnum.PLAYING
+  init (rows?: number, cols?: number) {
+    this.status = GameStatusEnum.READY
     this.updateSize(rows, cols)
     this.snake = this.createSnake()
     this.food = this.createFood()
     this.drawUI()
-    this.snake.move(this.snakeMoveHandler())
+    this.drawGrid()
+  }
+
+  start (rows?: number, cols?: number) {
+    if (this.status !== GameStatusEnum.READY) {
+      this.init(rows, cols)
+    }
+    this.status = GameStatusEnum.PLAYING
+    this.snake?.move(this.snakeMoveHandler())
   }
 
   unpause () {
@@ -206,8 +235,8 @@ class Game {
     const maxHeight = (this.cvs.parentElement?.offsetHeight as number) * this.pixRatio
     const maxRow = Math.floor((maxHeight - lineWidth) / (this.blockSize + lineWidth))
     this.rows = Math.min(maxRow, rows || this.rows)
-    this.cvs.width = cvsWidth
-    this.cvs.height = (lineWidth + this.blockSize) * this.rows + lineWidth
+    this.cvs.width = this.gridCvs.width = cvsWidth
+    this.cvs.height = this.gridCvs.height = (lineWidth + this.blockSize) * this.rows + lineWidth
   }
 
   createSnake () {
@@ -264,14 +293,14 @@ class Game {
   drawUI () {
     const { cvs, ctx, blockSize, lineWidth } = this
     ctx.clearRect(0, 0, cvs.width, cvs.height)
-    this.drawGrid()
     this.snake?.draw(ctx, blockSize, lineWidth)
     this.food?.draw(ctx, blockSize, lineWidth)
   }
 
   drawGrid () {
-    const { width, height } = this.cvs
-    const { ctx, lineWidth, blockSize } = this
+    const { width, height } = this.gridCvs
+    const { lineWidth, blockSize } = this
+    const ctx = this.gridCvs.getContext('2d') as CanvasRenderingContext2D
     ctx.lineWidth = lineWidth
     ctx.strokeStyle = '#888'
     genArr(this.rows + 1).forEach((_, row) => {
