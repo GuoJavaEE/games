@@ -1,11 +1,17 @@
-import { genArr, getPixRatio, getRandInt } from "../../utils"
+import { delayCall, genArr, getPixRatio, getRandInt } from "../../utils"
 
 interface GameCallbacks {
-  onDone?: Function,
-  onFailed?: Function
+  onOver?: (foodCount: number) => void
 }
 
-enum MoveDirection { UP, RIGHT, DOWN, LEFT }
+interface MoveHandler {
+  onBefore: (dir: MoveDirectionEnum, row: number, col: number) => boolean,
+  onAfter: (coords: Block[]) => void
+}
+
+enum MoveDirectionEnum { UP, RIGHT, DOWN, LEFT }
+
+enum GameStatusEnum { READY, PLAYING, PAUSE, END }
 
 class Block {
   constructor (public row: number, public col: number) {}
@@ -21,7 +27,7 @@ class Block {
 }
 
 class Snake {
-  dir: MoveDirection = MoveDirection.UP
+  dir: MoveDirectionEnum = MoveDirectionEnum.UP
   speed: number = 1
   tid: any
 
@@ -36,28 +42,47 @@ class Snake {
     ctx.restore()
   }
 
-  moveFunc () {
+  moveFunc (handle: MoveHandler) {
     const { coords } = this
     const { row, col } = coords[0]
-    const c = {
-      [MoveDirection.UP]: [row - 1, col],
-      [MoveDirection.RIGHT]: [row, col + 1],
-      [MoveDirection.DOWN]: [row + 1, col],
-      [MoveDirection.LEFT]: [row, col - 1]
-    }[this.dir] as [number, number]
-    coords.unshift(new Block(...c))
-    this.coords.pop()
+    if (handle.onBefore(this.dir, row, col)) {
+      this.stop()
+    } else {
+      const c = {
+        [MoveDirectionEnum.UP]: [row - 1, col],
+        [MoveDirectionEnum.RIGHT]: [row, col + 1],
+        [MoveDirectionEnum.DOWN]: [row + 1, col],
+        [MoveDirectionEnum.LEFT]: [row, col - 1]
+      }[this.dir] as [number, number]
+      coords.unshift(new Block(...c))
+      this.coords.pop()
+      handle.onAfter(coords)
+    }
   }
 
-  move (cb?: (coords: Block[]) => void) {
-    this.tid = setInterval(() => {
-      this.moveFunc()
-      cb && cb(this.coords)
+  move (handle: MoveHandler) {
+    this.tid = setTimeout(() => {
+      const { coords } = this
+      const { row, col } = coords[0]
+      if (handle.onBefore(this.dir, row, col)) {
+        this.stop()
+      } else {
+        const c = {
+          [MoveDirectionEnum.UP]: [row - 1, col],
+          [MoveDirectionEnum.RIGHT]: [row, col + 1],
+          [MoveDirectionEnum.DOWN]: [row + 1, col],
+          [MoveDirectionEnum.LEFT]: [row, col - 1]
+        }[this.dir] as [number, number]
+        coords.unshift(new Block(...c))
+        this.coords.pop()
+        handle.onAfter(coords)
+        this.move(handle)
+      }
     }, Math.ceil(300 / this.speed))
   }
 
   stop () {
-    clearInterval(this.tid)
+    clearTimeout(this.tid)
     this.tid = null
   }
 
@@ -65,11 +90,11 @@ class Snake {
     const { row: foodRow, col: foodCol } = food
     const { row, col } = this.coords[0]
     let canEat: boolean
-    if (this.dir === MoveDirection.UP) {
+    if (this.dir === MoveDirectionEnum.UP) {
       canEat = row === foodRow + 1 && col === foodCol
-    } else if (this.dir === MoveDirection.RIGHT) {
+    } else if (this.dir === MoveDirectionEnum.RIGHT) {
       canEat = row === foodRow && col === foodCol - 1
-    } else if (this.dir === MoveDirection.DOWN) {
+    } else if (this.dir === MoveDirectionEnum.DOWN) {
       canEat = row === foodRow - 1 && col === foodCol
     } else {
       canEat = row === foodRow && col === foodCol + 1
@@ -102,6 +127,7 @@ class Game {
   blockSize: number = 0
   snake: Snake | undefined
   food: Food | undefined
+  status: GameStatusEnum = GameStatusEnum.READY
 
   constructor (public cvs: HTMLCanvasElement, public callbacks: GameCallbacks) {
     this.ctx = cvs.getContext('2d') as CanvasRenderingContext2D
@@ -128,17 +154,17 @@ class Game {
     const { blockSize, lineWidth } = this
     const snakeX = (blockSize + lineWidth) * col + lineWidth
     const snakeY = (blockSize + lineWidth) * row + lineWidth
-    if ([MoveDirection.UP, MoveDirection.DOWN].includes(snake.dir)) {
+    if ([MoveDirectionEnum.UP, MoveDirectionEnum.DOWN].includes(snake.dir)) {
       if (ex > snakeX + blockSize) {
-        snake.dir = MoveDirection.RIGHT
+        snake.dir = MoveDirectionEnum.RIGHT
       } else if (ex < snakeX) {
-        snake.dir = MoveDirection.LEFT
+        snake.dir = MoveDirectionEnum.LEFT
       }
-    } else if ([MoveDirection.RIGHT, MoveDirection.LEFT].includes(snake.dir)) {
+    } else if ([MoveDirectionEnum.RIGHT, MoveDirectionEnum.LEFT].includes(snake.dir)) {
       if (ey > snakeY + blockSize) {
-        snake.dir = MoveDirection.DOWN
+        snake.dir = MoveDirectionEnum.DOWN
       } else if (ey < snakeY) {
-        snake.dir = MoveDirection.UP
+        snake.dir = MoveDirectionEnum.UP
       }
     }
     this.eatFood()
@@ -146,29 +172,30 @@ class Game {
 
   onResize () {
     this.updateSize()
-    this.drawGrid()
+    this.drawUI()
   }
 
   start (rows?: number, cols?: number) {
+    this.status = GameStatusEnum.PLAYING
     this.updateSize(rows, cols)
     this.snake = this.createSnake()
     this.food = this.createFood()
     this.drawUI()
-    this.snake.move(coords => {
-      this.drawUI()
-      this.eatFood()
-    })
+    this.snake.move(this.snakeMoveHandler())
   }
 
   unpause () {
-    this.snake?.move(coords => {
-      this.drawUI()
-      this.eatFood()
-    })
+    if (this.status === GameStatusEnum.PAUSE) {
+      this.status = GameStatusEnum.PLAYING
+      this.snake?.move(this.snakeMoveHandler())
+    }
   }
 
   pause () {
-    this.snake?.stop()
+    if (this.status === GameStatusEnum.PLAYING) {
+      this.status = GameStatusEnum.PAUSE
+      this.snake?.stop()
+    }
   }
 
   updateSize (rows?: number, cols?: number) {
@@ -191,6 +218,26 @@ class Game {
       new Block(row, col),
       new Block(row + 1, col)
     ])
+  }
+
+  snakeMoveHandler (): MoveHandler {
+    return {
+      onBefore: (dir, row, col) => {
+        const result = dir === MoveDirectionEnum.UP && row === 0 ||
+          dir === MoveDirectionEnum.RIGHT && col === this.cols - 1 ||
+          dir === MoveDirectionEnum.DOWN && row === this.rows - 1 ||
+          dir === MoveDirectionEnum.LEFT && col === 0
+        if (result) {
+          this.status = GameStatusEnum.END
+          delayCall(this.callbacks.onOver, this.snake?.coords.length as number - 3)
+        }
+        return result
+      },
+      onAfter: () => {
+        this.drawUI()
+        this.eatFood()
+      }
+    }
   }
 
   createFood () {

@@ -25,12 +25,8 @@ export default {
   },
   mounted () {
     const game = new Game(this.$refs.ui as HTMLCanvasElement, {
-      onDone: () => {
-        alert('恭喜你，挑战成功！')
-        game.start()
-      },
-      onFailed: () => {
-        
+      onOver: (count) => {
+        alert(`游戏结束！你共吃掉${count}块食物，请点击[开始游戏]按钮，重新开始游戏`)
       }
     })
     game.start()
