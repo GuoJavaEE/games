@@ -158,8 +158,7 @@ class Game {
     canvas.style.width = '100%'
     canvas.style.pointerEvents = 'none'
     const parentStyle = window.getComputedStyle(parentEl)
-    console.log(parentStyle.position)
-    if (['absolute', 'relative', 'fixed'].indexOf(parentStyle.position) < 0) {
+    if (parentStyle.position === 'static') {
       parentEl.style.position = 'relative'
     }
     parentEl.appendChild(canvas)
@@ -206,6 +205,9 @@ class Game {
   }
 
   start (rows?: number, cols?: number) {
+    if (this.snake) {
+      this.snake.stop()
+    }
     if (this.status !== GameStatusEnum.READY) {
       this.init(rows, cols)
     }
