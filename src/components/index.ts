@@ -22,10 +22,10 @@ const games: { [key: string]: GameItemValue } = {
     name: '经典扫雷',
     component: () => import('./mine/Index.vue')
   },
-  // pintu: {
-  //   name: '经典拼图',
-  //   component: () => import('./pintu/Index.vue')
-  // },
+  pintu: {
+    name: '经典拼图',
+    component: () => import('./pintu/Index.vue')
+  },
   snake: {
     name: '经典贪吃蛇',
     component: () => import('./snake/Index.vue')
