@@ -50,7 +50,6 @@ class Game {
 
   updateSize () {
     const width = this.cvs.offsetWidth * this.pixRatio
-    const height = 
   }
 
   drawUI () {
