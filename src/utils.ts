@@ -15,14 +15,31 @@ export const delayCall = (fn?: Function, data?: any, delay: number = 100) => {
   }, delay)
 }
 
-export const imgLoader = (src: string): Promise<HTMLImageElement> => {
+export const isStr = (s: any) => typeof s === 'string'
+
+export const imgLoader = (img: string | HTMLImageElement): Promise<HTMLImageElement> => {
   return new Promise((resolve, reject) => {
-    const img = new Image()
-    img.onload = () => {
-      resolve(img)
+    if (isStr(img)) {
+      let image = new Image()
+      image.onload = () => {
+        resolve(image)
+        image.onload = null
+        image = null as any
+      }
+      image.onerror = reject
+      image.src = img as string
+    } else {
+      const image = img as HTMLImageElement
+      if (image.complete) {
+        resolve(image)
+      } else {
+        const onLoad = function () {
+          image.removeEventListener('load', onLoad)
+          resolve(image)
+        }
+        image.addEventListener('load', onLoad)
+      }
     }
-    img.onerror = reject
-    img.src = src
   })
 }
 
