@@ -56,3 +56,41 @@ export const getCenterAppr = (num: number) => {
     }
   }
 }
+
+interface NumAnimationOptions {
+  moveCount?: number,
+  onEnd?: () => void,
+  onChange?: (val: number) => void
+}
+
+export const createNumAnimation = (a: number, b: number, options: NumAnimationOptions = {}) => {
+  let aniFrame: number
+  let aniFunc: FrameRequestCallback
+  let step = Math.ceil(Math.abs(a - b) / (options.moveCount || 15))
+  const { onChange, onEnd } = options
+  let { requestAnimationFrame, cancelAnimationFrame } = window
+  if (a > b) {
+    aniFunc = function () {
+      a -= step
+      if (a > b) {
+        onChange && onChange(a)
+        aniFrame = requestAnimationFrame(aniFunc)
+      } else {
+        onEnd && onEnd()
+        cancelAnimationFrame(aniFrame)
+      }
+    }
+  } else {
+    aniFunc = function () {
+      a += step
+      if (a < b) {
+        onChange && onChange(a)
+        aniFrame = requestAnimationFrame(aniFunc)
+      } else {
+        onEnd && onEnd()
+        cancelAnimationFrame(aniFrame)
+      }
+    }
+  }
+  aniFunc(0)
+}

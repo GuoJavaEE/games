@@ -1,4 +1,4 @@
-import { genArr, getPixRatio, imgLoader } from "../../utils"
+import { createNumAnimation, delayCall, genArr, getPixRatio, imgLoader } from "../../utils"
 
 interface UIOptions {
   rows?: number,
@@ -13,13 +13,18 @@ interface GameCallbacks {
 interface Block {
   row: number,
   col: number,
+  x: number,
+  y: number,
   dx: number,
   dy: number,
   dw: number,
   dh: number,
   _row: number,
-  _col: number
+  _col: number,
+  hide?: boolean
 }
+
+enum MoveDirection { UP, RIGHT, DOWN, LEFT }
 
 class Game {
   ctx: CanvasRenderingContext2D
@@ -68,17 +73,17 @@ class Game {
   }
 
   drawUI () {
-    const { ctx, cvs, bWidth, bHeight, bSpace } = this
+    const { ctx, cvs, bWidth, bHeight } = this
     ctx.clearRect(0, 0, cvs.width, cvs.height)
-    this.blocks.forEach(_ => {
+    this.blocks.filter(_ => !_.hide).forEach(_ => {
       ctx.drawImage(
         this.img as HTMLImageElement,
         _.dx,
         _.dy,
         _.dw,
         _.dh,
-        (bWidth + bSpace) * _.col,
-        (bHeight + bSpace) * _.row,
+        _.x,
+        _.y,
         bWidth,
         bHeight
       )
@@ -86,7 +91,7 @@ class Game {
   }
 
   genBlocks () {
-    const { img, rows, cols } = this
+    const { img, rows, cols, bSpace } = this
     const imgWidth = img?.naturalWidth as number
     const imgHeight = img?.naturalHeight as number
     const dw = imgWidth / cols
@@ -94,16 +99,41 @@ class Game {
     const blocks = genArr(rows).reduce((t: Block[], a, row) => {
       return t.concat(
         genArr(cols).map((b, col) => {
-          return { row, col, _row: row, _col: col, dw, dh, dx: dw * col, dy: dh * row }
+          return {
+            dw,
+            dh,
+            row,
+            col,
+            _row: row,
+            _col: col,
+            dx: dw * col,
+            dy: dh * row,
+            x: (this.bWidth + bSpace) * col,
+            y: (this.bHeight + bSpace) * row
+          }
         })
       )
     }, [])
-    blocks.pop()
-    const grids = blocks.map(_ => ({ row: _.row, col: _.col })).sort(() => Math.random() - .5)
+
+    const lastBlock = blocks.pop()
+    if (lastBlock) {
+      lastBlock.hide = true
+    }
+
+    const grids = blocks.map(_ => {
+      return { row: _.row, col: _.col, x: _.x, y: _.y }
+    }).sort(() => Math.random() - .5)
+
     return blocks.map((_, i) => {
       const gridItem = grids[i]
-      return { ..._, row: gridItem.row, col: gridItem.col }
-    })
+      return {
+        ..._,
+        x: gridItem.x,
+        y: gridItem.y,
+        row: gridItem.row,
+        col: gridItem.col
+      }
+    }).concat(lastBlock as Block)
   }
 
   getCurBlock (event: MouseEvent) {
@@ -121,6 +151,63 @@ class Game {
     return this.blocks.every(_ => _.row === _._row && _.col === _._col)
   }
 
+  getSwapInfo (block: Block) {
+    const { blocks } = this
+    const upBlock = blocks.find(_ => _.row === block.row - 1 && _.col === block.col)
+    const rightBlock = blocks.find(_ => _.row === block.row && _.col === block.col + 1)
+    const downBlock = blocks.find(_ => _.row === block.row + 1 && _.col === block.col)
+    const leftBlock = blocks.find(_ => _.row === block.row && _.col === block.col - 1)
+    if (upBlock && upBlock.hide) {
+      return { block: upBlock, dir: MoveDirection.UP }
+    } else if (rightBlock && rightBlock.hide) {
+      return { block: rightBlock, dir: MoveDirection.RIGHT }
+    } else if (downBlock && downBlock.hide) {
+      return { block: downBlock, dir: MoveDirection.DOWN }
+    } else if (leftBlock && leftBlock.hide) {
+      return { block: leftBlock, dir: MoveDirection.LEFT }
+    }
+  }
+
+  moveBlock (curBlock: Block, { block, dir }: { block: Block, dir: MoveDirection }) {
+    const drawAndCheckDone = () => {
+      this.drawUI()
+      this.isDone() && delayCall(this.callbacks.onDone)
+    }
+    if ([MoveDirection.UP, MoveDirection.DOWN].includes(dir)) {
+      const curY = curBlock.y
+      const curRow = curBlock.row
+      createNumAnimation(curBlock.y, block.y, {
+        onChange: v => {
+          curBlock.y = v
+          this.drawUI()
+        },
+        onEnd: () => {
+          curBlock.y = block.y
+          block.y = curY
+          curBlock.row = block.row
+          block.row = curRow
+          drawAndCheckDone()
+        }
+      })
+    } else {
+      const curX = curBlock.x
+      const curCol = curBlock.col
+      createNumAnimation(curBlock.x, block.x, {
+        onChange: v => {
+          curBlock.x = v
+          this.drawUI()
+        },
+        onEnd: () => {
+          curBlock.x = block.x
+          block.x = curX
+          curBlock.col = block.col
+          block.col = curCol
+          drawAndCheckDone()
+        }
+      })
+    }
+  }
+
   addListeners () {
     this.cvs.addEventListener('click', this.onClick.bind(this))
     window.addEventListener('resize', this.onResize.bind(this))
@@ -134,12 +221,16 @@ class Game {
   onClick (event: MouseEvent) {
     const block = this.getCurBlock(event)
     if (block) {
-
+      const swapInfo = this.getSwapInfo(block)
+      if (swapInfo) {
+        this.moveBlock(block, swapInfo)
+      }
     }
   }
 
   onResize () {
-
+    this.updateSize()
+    this.drawUI()
   }
 }
 
