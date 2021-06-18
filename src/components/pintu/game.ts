@@ -136,6 +136,14 @@ class Game {
     }).concat(lastBlock as Block)
   }
 
+  updateBlockCoords () {
+    const { bSpace } = this
+    this.blocks.forEach(_ => {
+      _.x = (this.bWidth + bSpace) * _.col,
+      _.y = (this.bHeight + bSpace) * _.row
+    })
+  }
+
   getCurBlock (event: MouseEvent) {
     const ex = (event.offsetX || event.pageX) * this.pixRatio
     const ey = (event.offsetY || event.pageY) * this.pixRatio
@@ -230,6 +238,7 @@ class Game {
 
   onResize () {
     this.updateSize()
+    this.updateBlockCoords()
     this.drawUI()
   }
 }
