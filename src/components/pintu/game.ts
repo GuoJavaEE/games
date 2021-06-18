@@ -49,6 +49,8 @@ class Game {
       this.rows = options.rows
     }
     this.cols = options.cols || options.rows || this.cols
+    this.updateSize()
+
     let { img } = options
     if (img) {
       this.img = await imgLoader(img)
@@ -56,7 +58,6 @@ class Game {
       throw Error('Missing option: img')
     }
 
-    this.updateSize()
     this.blocks = this.genBlocks()
     this.drawUI()
   }
