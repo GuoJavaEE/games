@@ -38,10 +38,10 @@ const games: { [key: string]: GameItemValue } = {
   //   name: '五子棋之人机大战',
   //   component: () => import('./wzq/Index.vue')
   // },
-  // xxk: {
-  //   name: '消消看',
-  //   component: () => import('./xxk/Index.vue')
-  // }
+  xxk: {
+    name: '消消看',
+    component: () => import('./xxk/Index.vue')
+  }
 }
 
 export default games

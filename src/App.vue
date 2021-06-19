@@ -24,6 +24,9 @@ a, canvas {
 
 canvas {
   user-select: none;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  perspective: 1000px;
 }
 
 a {
