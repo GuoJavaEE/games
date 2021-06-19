@@ -34,5 +34,8 @@ export default {
 }
 canvas {
   width: 100%;
+  border: 3px solid #fff;
+  background-color: #fff;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 20%), 0 1px 1px rgb(0 0 0 / 14%), 0 2px 1px -1px rgb(0 0 0 / 12%);
 }
 </style>
