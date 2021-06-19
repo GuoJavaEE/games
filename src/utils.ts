@@ -63,34 +63,44 @@ interface NumAnimationOptions {
   onChange?: (val: number) => void
 }
 
-export const createNumAnimation = (a: number, b: number, options: NumAnimationOptions = {}) => {
-  let aniFrame: number
-  let aniFunc: FrameRequestCallback
-  let step = Math.ceil(Math.abs(a - b) / (options.moveCount || 15))
-  const { onChange, onEnd } = options
-  let { requestAnimationFrame, cancelAnimationFrame } = window
-  if (a > b) {
-    aniFunc = function () {
-      a -= step
-      if (a > b) {
-        onChange && onChange(a)
-        aniFrame = requestAnimationFrame(aniFunc)
-      } else {
-        onEnd && onEnd()
-        cancelAnimationFrame(aniFrame)
+export const createNumAnimation = () => {
+  let isRunning = false
+  return (a: number, b: number, options: NumAnimationOptions = {}) => {
+    if (isRunning) return
+    isRunning = true
+    let aniFrame: number
+    let aniFunc: FrameRequestCallback
+    let step = Math.ceil(Math.abs(a - b) / (options.moveCount || 15))
+    const { onChange, onEnd } = options
+    let { requestAnimationFrame, cancelAnimationFrame } = window
+    const endHandler = () => {
+      onEnd && onEnd()
+      cancelAnimationFrame(aniFrame)
+      isRunning = false
+    }
+    const changeHandler = (v: number) => {
+      onChange && onChange(v)
+      aniFrame = requestAnimationFrame(aniFunc)
+    }
+    if (a > b) {
+      aniFunc = function () {
+        a -= step
+        if (a > b) {
+          changeHandler(a)
+        } else {
+          endHandler()
+        }
+      }
+    } else {
+      aniFunc = function () {
+        a += step
+        if (a < b) {
+          changeHandler(a)
+        } else {
+          endHandler()
+        }
       }
     }
-  } else {
-    aniFunc = function () {
-      a += step
-      if (a < b) {
-        onChange && onChange(a)
-        aniFrame = requestAnimationFrame(aniFunc)
-      } else {
-        onEnd && onEnd()
-        cancelAnimationFrame(aniFrame)
-      }
-    }
+    aniFunc(0)
   }
-  aniFunc(0)
 }

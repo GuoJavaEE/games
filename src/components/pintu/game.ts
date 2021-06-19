@@ -36,6 +36,7 @@ class Game {
   cols: number = 3
   img: HTMLImageElement | undefined
   blocks: Block[] = []
+  createNumAnimation = createNumAnimation()
 
   constructor (public cvs: HTMLCanvasElement, public callbacks: GameCallbacks = {}) {
     this.ctx = cvs.getContext('2d') as CanvasRenderingContext2D
@@ -185,7 +186,7 @@ class Game {
     if ([MoveDirection.UP, MoveDirection.DOWN].includes(dir)) {
       const curY = curBlock.y
       const curRow = curBlock.row
-      createNumAnimation(curBlock.y, block.y, {
+      this.createNumAnimation(curBlock.y, block.y, {
         onChange: v => {
           curBlock.y = v
           this.drawUI()
@@ -201,7 +202,7 @@ class Game {
     } else {
       const curX = curBlock.x
       const curCol = curBlock.col
-      createNumAnimation(curBlock.x, block.x, {
+      this.createNumAnimation(curBlock.x, block.x, {
         onChange: v => {
           curBlock.x = v
           this.drawUI()
