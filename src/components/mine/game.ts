@@ -175,7 +175,7 @@ class Game {
     const y = block.row * (blockSize + blockSpace) + blockSpace + (blockSize - fontWidth) / 2
     ctx.save()
     ctx.font = `bold ${fontSize} serif`
-    ctx.textAlign = "center"
+    ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'
     ctx.fillStyle = color
     ctx.fillText(text, x, y)

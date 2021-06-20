@@ -1,6 +1,14 @@
 <template>
   <div class="container">
-    <canvas ref="canvas"></canvas>
+    <div class="dashboard">
+      <div class="title">经典消消看</div>
+      <div class="btns">
+        <button @click="onStart">新游戏</button>
+      </div>
+    </div>
+    <div class="game-ui">
+      <canvas ref="canvas" />
+    </div>
   </div>
 </template>
 
@@ -24,18 +32,51 @@ export default {
   unmounted () {
     this.game?.removeListeners()
     this.game = null
+  },
+  methods: {
+    onStart () {
+      this.game?.start()
+    }
   }
 }
 </script>
 
-<style scoped>
+<style lang="less" scoped>
 .container {
   height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+.dashboard {
+  padding: 10px;
+  background-color: @content-color;
+  display: flex;
+  margin-bottom: 1px;
+}
+.game-ui {
+  flex: 1;
+  height: 0;
 }
 canvas {
   width: 100%;
-  border: 3px solid #fff;
   background-color: #fff;
-  box-shadow: 0 1px 3px rgb(0 0 0 / 20%), 0 1px 1px rgb(0 0 0 / 14%), 0 2px 1px -1px rgb(0 0 0 / 12%);
+}
+.title {
+  color: #fff;
+  font-size: 1.5em;
+  flex: 1;
+}
+.btns {
+  button {
+    background-color: @primary-color;
+    color: #fff;
+    border: none;
+    padding: 6px 12px;
+    margin-left: 10px;
+    cursor: pointer;
+    &:hover {
+      background-color: mix(#fff, @primary-color, 10%);
+    }
+  }
 }
 </style>

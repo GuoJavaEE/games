@@ -54,6 +54,7 @@ class Game {
       }
       this.colors = options.colors
     }
+    this.score = 0
 
     this.updateSize()
     this.blocks = this.genBlocks()
@@ -141,6 +142,41 @@ class Game {
     })
   }
 
+  drawScores (blocks: Block[]) {
+    const text = `+${blocks.length}`
+    const { bWidth, bHeight, bSpace, ctx } = this
+    const fontSize = Math.min(bWidth * .4, bHeight * .4) + 'px'
+    const fontWidth = ctx.measureText(text).width
+    ctx.save()
+    ctx.font = `bold ${fontSize} serif`
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
+    ctx.fillStyle = '#555'
+    blocks.forEach(_ => {
+      const x = (bWidth + bSpace) * _.col + (bWidth - fontWidth) / 2 + this.pixRatio
+      const y = (bHeight + bSpace) * _.row + (bHeight - fontWidth) / 2 + this.pixRatio * 4
+      ctx.fillText(text, x, y)
+    })
+    ctx.restore()
+    return new Promise(resolve => setTimeout(resolve, 300))
+  }
+
+  moveBlocks (blocks: Block[]) {
+    this.blocks.forEach(_ => {
+      _.row += blocks.filter(a => a.col === _.col && a.row > _.row).length
+    })
+    const emptyCols = genArr(this.cols).map((_, i) => i).filter(col => {
+      return !this.blocks.filter(_ => _.col === col).length
+    })
+    this.blocks.forEach(_ => {
+      _.col -= emptyCols.filter(a => a < _.col).length
+    })
+  }
+
+  isDone () {
+    return this.blocks.every(_ => this.getSameBlocks(_).length < 2)
+  }
+
   onClick (event: MouseEvent) {
     const block = this.getCurBlock(event)
     if (block) {
@@ -150,6 +186,11 @@ class Game {
         this.score += len * len
         this.removeBlocks(sameBlocks)
         this.drawUI()
+        this.drawScores(sameBlocks).then(() => {
+          this.moveBlocks(sameBlocks)
+          this.drawUI()
+          this.isDone() && delayCall(this.callbacks.onDone, this.score)
+        })
       }
     }
   }
