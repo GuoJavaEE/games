@@ -30,10 +30,10 @@ const games: { [key: string]: GameItemValue } = {
     name: '经典贪吃蛇',
     component: () => import('./snake/Index.vue')
   },
-  // sudoku: {
-  //   name: '数独',
-  //   component: () => import('./sudoku/Index.vue')
-  // },
+  sudoku: {
+    name: '数独',
+    component: () => import('./sudoku/Index.vue')
+  },
   // wzq: {
   //   name: '五子棋之人机大战',
   //   component: () => import('./wzq/Index.vue')
