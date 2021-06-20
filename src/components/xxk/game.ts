@@ -186,8 +186,8 @@ class Game {
         this.score += len * len
         this.removeBlocks(sameBlocks)
         this.drawUI()
+        this.moveBlocks(sameBlocks)
         this.drawScores(sameBlocks).then(() => {
-          this.moveBlocks(sameBlocks)
           this.drawUI()
           this.isDone() && delayCall(this.callbacks.onDone, this.score)
         })
