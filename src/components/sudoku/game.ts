@@ -8,7 +8,23 @@ class Block {
   constructor (public row: number, public col: number, public isInput: boolean, public num = 0) {}
 
   draw (ctx: CanvasRenderingContext2D, bSize: number, bSpace: number) {
-
+    const x = (bSize + bSpace) * this.col + bSpace
+    const y = (bSize + bSpace) * this.row + bSpace
+    ctx.save()
+    if (this.isInput) {
+      ctx.fillStyle = '#fff'
+      ctx.fillRect(x, y, bSize, bSize)
+    }
+    if (this.num) {
+      const text = this.num + ''
+      ctx.fillStyle = '#424242'
+      ctx.font = `bold ${bSize / 2}px serif`
+      ctx.textBaseline = 'hanging'
+      ctx.textAlign = 'left'
+      const fontWidth = ctx.measureText(text).width
+      ctx.fillText(text, x + (bSize - fontWidth) / 2, y + (bSize - fontWidth) / 2)
+    }
+    ctx.restore()
   }
 }
 
@@ -16,24 +32,28 @@ class Game {
   emptyCount = 20
   readonly rows = 9
   readonly cols = 9
+  readonly colors = ['#ccc','#def1e6']
   blocks: Block[] = []
   bakEmptyBlocks: Block[] = []
   ctx: CanvasRenderingContext2D
   pixRatio: number
   bSpace: number
   bSize = 0
+  focusBlock: Block | undefined
+  keyboard: HTMLUListElement
 
   constructor (public cvs: HTMLCanvasElement, public callbacks: GameCallbacks) {
     this.ctx = cvs.getContext('2d') as CanvasRenderingContext2D
     this.pixRatio = getPixRatio(this.ctx)
     this.bSpace = this.pixRatio
+    this.keyboard = this.createKeyboard()
+    this.addListeners()
   }
 
   start (emptyCount?: number) {
     if (emptyCount) {
-      this.emptyCount = emptyCount
+      this.emptyCount = Math.min(emptyCount, 60)
     }
-
     this.updateSize()
     const { blocks, bakEmptyBlocks } = this.genBlocks()
     this.blocks = blocks
@@ -42,11 +62,61 @@ class Game {
   }
 
   updateSize () {
-
+    const width = this.cvs.offsetWidth * this.pixRatio
+    this.bSize = (width - (this.cols + 1) * this.bSpace) / this.cols
+    this.cvs.width = this.cvs.height = width
   }
 
   drawUI () {
+    const { ctx, cvs } = this
+    ctx.clearRect(0, 0, cvs.width, cvs.height)
+    this.drawBG()
+    this.drawGrid()
+    this.blocks.forEach(_ => {
+      _.draw(ctx, this.bSize, this.bSpace)
+    })
+    const { focusBlock } = this
+    if (focusBlock) {
+      const x = (this.bSize + this.bSpace) * focusBlock.col + this.bSpace
+      const y = (this.bSize + this.bSpace) * focusBlock.row + this.bSpace
+      ctx.save()
+      ctx.strokeStyle = ctx.shadowColor = '#00f'
+      ctx.shadowBlur = this.bSpace * 8
+      ctx.strokeRect(x, y, this.bSize, this.bSize)
+      ctx.restore()
+    }
+  }
 
+  drawBG () {
+    const { ctx } = this
+    const width = this.cvs.width / 3
+    let count = 0
+    ctx.save()
+    genArr(3).forEach((_, row) => {
+      genArr(3).forEach((_, col) => {
+        ctx.fillStyle = this.colors[(count++) % 2]
+        ctx.fillRect(col * width, row * width, width, width)
+      })
+    })
+    ctx.restore()
+  }
+
+  drawGrid () {
+    const { ctx, bSpace } = this
+    const { width } = this.cvs
+    ctx.save()
+    ctx.lineWidth = bSpace
+    ctx.strokeStyle = '#424242'
+    ctx.beginPath()
+    genArr(this.rows + 1).forEach((_, i) => {
+      const val = i * (this.bSize + bSpace) + bSpace / 2
+      ctx.moveTo(0, val)
+      ctx.lineTo(width, val)
+      ctx.moveTo(val, 0)
+      ctx.lineTo(val, width)
+    })
+    ctx.stroke()
+    ctx.restore()
   }
 
   genBlocks () {
@@ -92,17 +162,49 @@ class Game {
     return { bakEmptyBlocks, blocks }
   }
 
+  getCurBlock (event: MouseEvent) {
+    const { bSize, bSpace, pixRatio } = this
+    const ex = (event.offsetX || event.pageX) * pixRatio
+    const ey = (event.offsetY || event.pageY) * pixRatio
+    return this.blocks.find(_ => {
+      const x = (bSize + bSpace) * _.col + bSpace
+      const y = (bSize + bSpace) * _.row + bSpace
+      return ex > x && ex < x + bSize && ey > y && ey < y + bSize
+    })
+  }
+
+  createKeyboard () {
+    const ul = document.createElement('ul')
+    ul.className = 'keyboard'
+    ul.innerHTML = genArr(9).map((_, i) => `<li>${i + 1}</li>`).join()
+    this.cvs.parentElement?.appendChild(ul)
+    return ul
+  }
+
+  updateKeyboardPosition () {
+
+  }
+
   addListeners () {
     this.cvs.addEventListener('click', this.onClick.bind(this))
+    this.keyboard.addEventListener('click', this.onKeyboardClick.bind(this))
     window.addEventListener('resize', this.onResize.bind(this))
   }
 
   removeListeners () {
     this.cvs.removeEventListener('click', this.onClick)
+    this.keyboard.removeEventListener('click', this.onKeyboardClick)
     window.removeEventListener('resize', this.onResize)
   }
 
   onClick (event: MouseEvent) {
+    const block = this.getCurBlock(event)
+    this.focusBlock = block && block.isInput ? block : undefined
+    this.drawUI()
+    this.updateKeyboardPosition()
+  }
+
+  onKeyboardClick (event: MouseEvent) {
 
   }
 
