@@ -24,7 +24,7 @@ export default {
     this.game = new Game(this.$refs.canvas as HTMLCanvasElement, {
       onDone: () => {
         alert('恭喜你！挑战成功！')
-        this.game?.start()
+        this.game?.start(this.game.emptyCount + 4)
       }
     })
     this.game.start()
@@ -56,6 +56,7 @@ export default {
 .game-ui {
   flex: 1;
   height: 0;
+  position: relative;
 }
 canvas {
   width: 100%;

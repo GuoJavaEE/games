@@ -1,0 +1,29 @@
+.keyboard {
+  position: absolute;
+  z-index: 1;
+  left: 10px;
+  right: 10px;
+  text-align: center;
+  background-color: #fff;
+  box-shadow: rgba(0, 0, 0, .2) 0 0 10px;
+  transition: transform .24s ease, opacity .24s ease;
+  display: flex;
+  &:not(.visible) {
+    opacity: 0;
+    transform: scaleX(0);
+  }
+  li {
+    flex: auto;
+    cursor: pointer;
+    color: #00e;
+    font-size: 20px;
+    height: 2em;
+    line-height: 2em;
+    &:not(:first-child) {
+      border-left: 1px solid @border-color;
+    }
+    &:hover {
+      background-color: #eee;
+    }
+  }
+}

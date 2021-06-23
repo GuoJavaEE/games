@@ -1,4 +1,5 @@
-import { genArr, getPixRatio, getRandInt } from "../../utils"
+import { delayCall, genArr, getPixRatio, getRandInt } from "../../utils"
+import styleModule from './style.module.less'
 
 interface GameCallbacks {
   onDone?: () => void
@@ -30,19 +31,19 @@ class Block {
 
 class Game {
   emptyCount = 20
-  readonly rows = 9
-  readonly cols = 9
-  readonly colors = ['#ccc','#def1e6']
-  blocks: Block[] = []
-  bakEmptyBlocks: Block[] = []
-  ctx: CanvasRenderingContext2D
-  pixRatio: number
-  bSpace: number
-  bSize = 0
-  focusBlock: Block | undefined
-  keyboard: HTMLUListElement
+  private readonly rows = 9
+  private readonly cols = 9
+  private readonly colors = ['#ccc','#def1e6']
+  private blocks: Block[] = []
+  private bakEmptyBlocks: Block[] = []
+  private ctx: CanvasRenderingContext2D
+  private pixRatio: number
+  private bSpace: number
+  private bSize = 0
+  private focusBlock: Block | undefined
+  private keyboard: HTMLUListElement
 
-  constructor (public cvs: HTMLCanvasElement, public callbacks: GameCallbacks) {
+  constructor (private cvs: HTMLCanvasElement, private callbacks: GameCallbacks) {
     this.ctx = cvs.getContext('2d') as CanvasRenderingContext2D
     this.pixRatio = getPixRatio(this.ctx)
     this.bSpace = this.pixRatio
@@ -61,13 +62,13 @@ class Game {
     this.drawUI()
   }
 
-  updateSize () {
+  private updateSize () {
     const width = this.cvs.offsetWidth * this.pixRatio
     this.bSize = (width - (this.cols + 1) * this.bSpace) / this.cols
     this.cvs.width = this.cvs.height = width
   }
 
-  drawUI () {
+  private drawUI () {
     const { ctx, cvs } = this
     ctx.clearRect(0, 0, cvs.width, cvs.height)
     this.drawBG()
@@ -87,7 +88,7 @@ class Game {
     }
   }
 
-  drawBG () {
+  private drawBG () {
     const { ctx } = this
     const width = this.cvs.width / 3
     let count = 0
@@ -101,7 +102,7 @@ class Game {
     ctx.restore()
   }
 
-  drawGrid () {
+  private drawGrid () {
     const { ctx, bSpace } = this
     const { width } = this.cvs
     ctx.save()
@@ -119,7 +120,7 @@ class Game {
     ctx.restore()
   }
 
-  genBlocks () {
+  private genBlocks () {
     const nums = [
       [8, 7, 1, 9, 3, 2, 6, 4, 5],
       [4, 9, 5, 8, 6, 1, 2, 3, 7],
@@ -162,7 +163,7 @@ class Game {
     return { bakEmptyBlocks, blocks }
   }
 
-  getCurBlock (event: MouseEvent) {
+  private getCurBlock (event: MouseEvent) {
     const { bSize, bSpace, pixRatio } = this
     const ex = (event.offsetX || event.pageX) * pixRatio
     const ey = (event.offsetY || event.pageY) * pixRatio
@@ -173,19 +174,30 @@ class Game {
     })
   }
 
-  createKeyboard () {
+  private createKeyboard () {
     const ul = document.createElement('ul')
-    ul.className = 'keyboard'
-    ul.innerHTML = genArr(9).map((_, i) => `<li>${i + 1}</li>`).join()
+    ul.className = styleModule.keyboard
+    ul.innerHTML = genArr(9).map((_, i) => `<li>${i + 1}</li>`).join('')
     this.cvs.parentElement?.appendChild(ul)
     return ul
   }
 
-  updateKeyboardPosition () {
-
+  private updateKeyboardPosition () {
+    const { bSize, bSpace, keyboard, focusBlock } = this
+    if (focusBlock) {
+      const { row } = focusBlock
+      keyboard.style.top = ((row + 1) * (bSize + bSpace) + bSpace) / this.pixRatio + 'px'
+      keyboard.classList.add(styleModule.visible)
+    } else {
+      keyboard.classList.remove(styleModule.visible)
+    }
   }
 
-  addListeners () {
+  private isDone () {
+    return this.bakEmptyBlocks.every((_, i) => _.num === this.blocks[i].num)
+  }
+
+  private addListeners () {
     this.cvs.addEventListener('click', this.onClick.bind(this))
     this.keyboard.addEventListener('click', this.onKeyboardClick.bind(this))
     window.addEventListener('resize', this.onResize.bind(this))
@@ -197,20 +209,33 @@ class Game {
     window.removeEventListener('resize', this.onResize)
   }
 
-  onClick (event: MouseEvent) {
+  private onClick (event: MouseEvent) {
     const block = this.getCurBlock(event)
     this.focusBlock = block && block.isInput ? block : undefined
     this.drawUI()
     this.updateKeyboardPosition()
   }
 
-  onKeyboardClick (event: MouseEvent) {
-
+  private onKeyboardClick (event: MouseEvent) {
+    const { target } = event
+    const { focusBlock } = this
+    if (target && (target as HTMLElement).tagName.toLowerCase() === 'li') {
+      if (focusBlock) {
+        focusBlock.num = +(target as any).textContent
+        this.focusBlock = undefined
+        this.drawUI()
+        if (this.isDone()) {
+          delayCall(this.callbacks.onDone)
+        }
+      }
+      this.keyboard.classList.remove(styleModule.visible)
+    }
   }
 
-  onResize () {
+  private onResize () {
     this.updateSize()
     this.drawUI()
+    this.updateKeyboardPosition()
   }
 }
 
