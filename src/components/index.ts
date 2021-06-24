@@ -6,10 +6,10 @@ interface GameItemValue {
 }
 
 const games: { [key: string]: GameItemValue } = {
-  // 2048: {
-  //   name: '2048',
-  //   component: () => import('./2048/Index.vue')
-  // },
+  2048: {
+    name: '2048',
+    component: () => import('./2048/Index.vue')
+  },
   llk: {
     name: '经典连连看',
     component: () => import('./llk/Index.vue')
