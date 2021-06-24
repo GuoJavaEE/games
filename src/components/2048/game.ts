@@ -1,6 +1,13 @@
-import { genArr, getPixRatio } from "../../utils"
+import { genArr, getPixRatio, roundReact } from "../../utils"
 
-const colors = {
+interface ColorMap {
+  [key: string]: {
+    color: string,
+    bgcolor: string
+  }
+}
+
+const colors: ColorMap = {
   2: {
     color: '#333',
     bgcolor: '#eee4da'
@@ -81,18 +88,16 @@ class Game {
     this.drawUI()
   }
 
-  updateSize () {
+  private updateSize () {
     const width = this.cvs.offsetWidth * this.pixRatio
     this.bSize = (width - (this.cols + 1) * this.bSpace) / this.cols
     this.cvs.width = this.cvs.height = width
   }
 
-  genBlocks () {
+  private genBlocks () {
     const blocks = genArr(this.rows)
       .reduce((t: Block[], _, row) => {
-        return t.concat(
-          genArr(this.cols).map((_, col) => ({ row, col, num: 0 }))
-        )
+        return [...t, ...genArr(this.cols).map((_, col) => ({ row, col, num: 0 }))]
       }, [])
       .sort(() => Math.random() - .5)
     blocks.slice(0, 2).forEach(_ => {
@@ -101,28 +106,50 @@ class Game {
     return blocks
   }
 
-  drawUI () {
+  private drawUI () {
     const { cvs, ctx, bSize, bSpace } = this
+    const getPos = (val: number) => (bSize + bSpace) * val + bSpace
+    const r = 6 * this.pixRatio
     ctx.clearRect(0, 0, cvs.width, cvs.height)
+    this.blocks.forEach(_ => {
+      if (_.num) {
+        ctx.fillStyle = colors[_.num].bgcolor
+        roundReact(ctx, getPos(_.col), getPos(_.row), bSize, bSize, r)
+        ctx.fill()
+        const text = _.num + ''
+        const fontSize = bSize / (text.length > 2 ? 3 : 2)
+        ctx.fillStyle = colors[_.num].color
+        ctx.font = `bold ${fontSize}px serif`
+        ctx.textBaseline = 'top'
+        const fontWidth = ctx.measureText(text).width
+        ctx.fillText(text, getPos(_.col) + (bSize - fontWidth) / 2, getPos(_.row) + (bSize - fontSize) / 2)
+      } else {
+        ctx.fillStyle = '#eee4da'
+        ctx.globalAlpha = .35
+        roundReact(ctx, getPos(_.col), getPos(_.row), bSize, bSize, r)
+        ctx.fill()
+      }
+    })
   }
 
-  onResize () {
+  private onResize () {
+    this.updateSize()
+    this.drawUI()
+  }
+
+  private onKeyup (event: KeyboardEvent) {
 
   }
 
-  onKeyup (event: KeyboardEvent) {
+  private onTouchstart (event: TouchEvent) {
 
   }
 
-  onTouchstart (event: TouchEvent) {
+  private onTouchmove (event: TouchEvent) {
 
   }
 
-  onTouchmove (event: TouchEvent) {
-
-  }
-
-  onTouchend (event: TouchEvent) {
+  private onTouchend (event: TouchEvent) {
 
   }
 

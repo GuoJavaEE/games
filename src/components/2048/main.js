@@ -17,54 +17,10 @@ class Board {
     return this.blocks.filter(_ => _.y === y)
   }
 
-  drawBlock({ x, y, num }) {
-    let { context, blockSize, pixRatio } = this
-    utils.roundRect(context, x, y, blockSize, blockSize, 6 * pixRatio)
-    context.fill()
-    if (!num) return
-    let fontSize = blockSize / ((num + '').length > 2 ? 3 : 2)
-    context.save()
-    context.fillStyle = COLORS[num].color
-    context.font = `bold ${fontSize}px serif`
-    context.textBaseline = 'hanging'
-    let fw = context.measureText(num).width
-    let tx = x + (blockSize - fw) / 2
-    let ty = y + (blockSize - fontSize) / 2 + 6
-    context.fillText(num, tx, ty)
-    context.restore()
-  }
-
-  drawGrids() {
-    let { rows, cols, context } = this
-    context.save()
-    context.fillStyle = '#eee4da'
-    context.globalAlpha = .35
-    for (let row = 0; row < rows; row++) {
-      for (let col = 0; col < cols; col++) {
-        this.drawBlock({
-          x: this.colToX(col),
-          y: this.rowToY(row)
-        })
-      }
-    }
-    context.restore()
-  }
-
   rndBlock() {
     let blocks = this.blocks.filter(_ => !_.num)
     blocks.sort(() => Math.random() - .5)
     if (blocks.length) blocks[0].num = 2
-  }
-
-  drawBlocks() {
-    this.blocks.forEach(_ => {
-      if (_.num) {
-        this.context.save()
-        this.context.fillStyle = COLORS[_.num].bgcolor
-        this.drawBlock(_)
-        this.context.restore()
-      }
-    })
   }
 
   eachData(data) {
