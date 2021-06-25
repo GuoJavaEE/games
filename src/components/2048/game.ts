@@ -7,6 +7,8 @@ interface ColorMap {
   }
 }
 
+enum MoveDirection { UP, RIGHT, DOWN, LEFT }
+
 const colors: ColorMap = {
   2: {
     color: '#333',
@@ -55,7 +57,8 @@ const colors: ColorMap = {
 }
 
 interface GameCallbacks {
-  onDone?: Function
+  onDone?: Function,
+  onOver?: Function
 }
 
 interface Block {
@@ -113,6 +116,7 @@ class Game {
     ctx.clearRect(0, 0, cvs.width, cvs.height)
     this.blocks.forEach(_ => {
       if (_.num) {
+        ctx.save()
         ctx.fillStyle = colors[_.num].bgcolor
         roundReact(ctx, getPos(_.col), getPos(_.row), bSize, bSize, r)
         ctx.fill()
@@ -123,13 +127,64 @@ class Game {
         ctx.textBaseline = 'top'
         const fontWidth = ctx.measureText(text).width
         ctx.fillText(text, getPos(_.col) + (bSize - fontWidth) / 2, getPos(_.row) + (bSize - fontSize) / 2)
+        ctx.restore()
       } else {
+        ctx.save()
         ctx.fillStyle = '#eee4da'
         ctx.globalAlpha = .35
         roundReact(ctx, getPos(_.col), getPos(_.row), bSize, bSize, r)
         ctx.fill()
+        ctx.restore()
       }
     })
+  }
+
+  moveBlocks (dir: MoveDirection) {
+    const eachBlocks = (data: Block[]) => {
+      let nums = data.map(_ => _.num).filter(_ => _)
+      for (let i = 0, len = nums.length; i < len; i++) {
+        let num = nums[i]
+        let nextNum = nums[i + 1]
+        if (nextNum === num) {
+          nums[i] = num * 2
+          nums[i + 1] = 0
+          break
+        }
+      }
+      nums = nums.filter(_ => _)
+      data.forEach((_, i) => {
+        _.num = nums[i]
+      })
+    }
+    const { blocks } = this
+    const getColBlocks = (col: number) => blocks.filter(_ => _.col === col)
+    const getRowBlocks = (row: number) => blocks.filter(_ => _.row === row)
+    if ([MoveDirection.UP, MoveDirection.DOWN].includes(dir)) {
+      const compareFn = dir === MoveDirection.UP
+        ? (a: Block, b: Block) => a.row - b.row
+        : (a: Block, b: Block) => b.row - a.row
+      genArr(this.cols).forEach((_, col) => {
+        eachBlocks(getColBlocks(col).sort(compareFn))
+      })
+    } else if ([MoveDirection.RIGHT, MoveDirection.LEFT].includes(dir)) {
+      const compareFn = dir === MoveDirection.LEFT
+        ? (a: Block, b: Block) => a.col - b.col
+        : (a: Block, b: Block) => b.col - a.col
+      genArr(this.rows).forEach((_, row) => {
+        eachBlocks(getRowBlocks(row).sort(compareFn))
+      })
+    }
+  }
+
+  genRandBlock () {
+    const blocks = this.blocks.filter(_ => !_.num).sort(() => Math.random() - .5)
+    if (blocks.length) {
+      blocks[0].num = 2
+    }
+  }
+
+  checkResult () {
+
   }
 
   private onResize () {
@@ -138,7 +193,19 @@ class Game {
   }
 
   private onKeyup (event: KeyboardEvent) {
-
+    if (this.isGameover) return
+    const dir = [
+      [[87, 38], MoveDirection.UP],
+      [[68, 39], MoveDirection.RIGHT],
+      [[83, 40], MoveDirection.DOWN],
+      [[65, 37], MoveDirection.LEFT]
+    ].find(_ => (_[0] as number[]).includes(event.keyCode))
+    if (dir) {
+      this.moveBlocks(dir[1] as MoveDirection)
+      this.genRandBlock()
+      this.drawUI()
+      this.checkResult()
+    }
   }
 
   private onTouchstart (event: TouchEvent) {
