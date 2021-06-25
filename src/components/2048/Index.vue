@@ -25,6 +25,9 @@ export default {
       onDone: () => {
         alert('恭喜你！挑战成功！')
         this.game?.start()
+      },
+      onOver: () => {
+        alert('挑战失败！请点击[新游戏]，重新开始')
       }
     })
     this.game.start()

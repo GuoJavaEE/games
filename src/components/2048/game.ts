@@ -1,4 +1,4 @@
-import { genArr, getPixRatio, roundReact } from "../../utils"
+import { delayCall, genArr, getPixRatio, roundReact } from "../../utils"
 
 interface ColorMap {
   [key: string]: {
@@ -7,7 +7,7 @@ interface ColorMap {
   }
 }
 
-enum MoveDirection { UP, RIGHT, DOWN, LEFT }
+enum MoveDirection { UP = 1, RIGHT, DOWN, LEFT }
 
 const colors: ColorMap = {
   2: {
@@ -71,7 +71,7 @@ class Game {
   private readonly rows = 4
   private readonly cols = 4
   private ctx: CanvasRenderingContext2D
-  private pixRatio: number
+  private pixRatio: number = 1
   private bSpace: number
   private bSize = 0
   private isGameover = false
@@ -79,7 +79,6 @@ class Game {
 
   constructor (private cvs: HTMLCanvasElement, private callbacks: GameCallbacks) {
     this.ctx = cvs.getContext('2d') as CanvasRenderingContext2D
-    this.pixRatio = getPixRatio(this.ctx)
     this.bSpace = this.pixRatio * 8
     this.addListeners()
   }
@@ -92,6 +91,7 @@ class Game {
   }
 
   private updateSize () {
+    this.pixRatio = getPixRatio(this.ctx)
     const width = this.cvs.offsetWidth * this.pixRatio
     this.bSize = (width - (this.cols + 1) * this.bSpace) / this.cols
     this.cvs.width = this.cvs.height = width
@@ -139,7 +139,15 @@ class Game {
     })
   }
 
-  moveBlocks (dir: MoveDirection) {
+  private getColBlocks (col: number) {
+    return this.blocks.filter(_ => _.col === col)
+  }
+
+  private getRowBlocks (row: number) {
+    return this.blocks.filter(_ => _.row === row)
+  }
+
+  private moveBlocks (dir: MoveDirection) {
     const eachBlocks = (data: Block[]) => {
       let nums = data.map(_ => _.num).filter(_ => _)
       for (let i = 0, len = nums.length; i < len; i++) {
@@ -156,35 +164,62 @@ class Game {
         _.num = nums[i]
       })
     }
-    const { blocks } = this
-    const getColBlocks = (col: number) => blocks.filter(_ => _.col === col)
-    const getRowBlocks = (row: number) => blocks.filter(_ => _.row === row)
     if ([MoveDirection.UP, MoveDirection.DOWN].includes(dir)) {
       const compareFn = dir === MoveDirection.UP
         ? (a: Block, b: Block) => a.row - b.row
         : (a: Block, b: Block) => b.row - a.row
       genArr(this.cols).forEach((_, col) => {
-        eachBlocks(getColBlocks(col).sort(compareFn))
+        eachBlocks(this.getColBlocks(col).sort(compareFn))
       })
     } else if ([MoveDirection.RIGHT, MoveDirection.LEFT].includes(dir)) {
       const compareFn = dir === MoveDirection.LEFT
         ? (a: Block, b: Block) => a.col - b.col
         : (a: Block, b: Block) => b.col - a.col
       genArr(this.rows).forEach((_, row) => {
-        eachBlocks(getRowBlocks(row).sort(compareFn))
+        eachBlocks(this.getRowBlocks(row).sort(compareFn))
       })
+    }
+    if (dir) {
+      this.genRandBlock()
+      this.drawUI()
+      this.checkResult()
     }
   }
 
-  genRandBlock () {
+  private genRandBlock () {
     const blocks = this.blocks.filter(_ => !_.num).sort(() => Math.random() - .5)
     if (blocks.length) {
       blocks[0].num = 2
     }
   }
 
-  checkResult () {
-
+  private checkResult () {
+    if (this.blocks.some(_ => _.num === 2048)) {
+      this.isGameover = true
+      return delayCall(this.callbacks.onDone)
+    }
+    if (this.blocks.some(_ => !_.num)) return
+    enum Grid { ROW, COL }
+    const checkGrid = (type: Grid) => {
+      const count = type === Grid.ROW ? this.rows : this.cols
+      for (let i = 0; i < count; i++) {
+        const nums = (
+          type === Grid.ROW
+            ? this.getRowBlocks(i).sort((a, b) => a.col - b.col)
+            : this.getColBlocks(i).sort((a, b) => a.row - b.row)
+        ).map(_ => _.num)
+        for (let j = 0, len = nums.length; j < len; j++) {
+          if (nums[j] === nums[j + 1]) {
+            return false
+          }
+        }
+      }
+      return true
+    }
+    if (checkGrid(Grid.ROW) && checkGrid(Grid.COL)) {
+      this.isGameover = true
+      delayCall(this.callbacks.onOver)
+    }
   }
 
   private onResize () {
@@ -202,29 +237,45 @@ class Game {
     ].find(_ => (_[0] as number[]).includes(event.keyCode))
     if (dir) {
       this.moveBlocks(dir[1] as MoveDirection)
-      this.genRandBlock()
-      this.drawUI()
-      this.checkResult()
     }
   }
 
   private onTouchstart (event: TouchEvent) {
-
-  }
-
-  private onTouchmove (event: TouchEvent) {
-
-  }
-
-  private onTouchend (event: TouchEvent) {
-
+    if (this.isGameover) return
+    event.preventDefault()
+    const touch = event.targetTouches[0]
+    let sx = touch.pageX
+    let sy = touch.pageY
+    let ex: number
+    let ey: number
+    const { cvs } = this
+    const onTouchmove = (event: TouchEvent) => {
+      event.preventDefault()
+      const touch = event.targetTouches[0]
+      ex = touch.pageX
+      ey = touch.pageY
+    }
+    const onTouchend = () => {
+      if (ex === undefined) return
+      const x = Math.abs(ex - sx)
+      const y = Math.abs(ey - sy)
+      if (x > 6 || y > 6) {
+        if (x > y) {
+          this.moveBlocks(ex > sx ? MoveDirection.RIGHT : MoveDirection.LEFT)
+        } else {
+          this.moveBlocks(ey > sy ? MoveDirection.DOWN : MoveDirection.UP)
+        }
+      }
+      cvs.removeEventListener('touchmove', onTouchmove)
+      cvs.removeEventListener('touchend', onTouchend)
+    }
+    cvs.addEventListener('touchmove', onTouchmove)
+    cvs.addEventListener('touchend', onTouchend)
   }
 
   private addListeners () {
     const { cvs } = this
     cvs.addEventListener('touchstart', this.onTouchstart.bind(this))
-    cvs.addEventListener('touchmove', this.onTouchmove.bind(this))
-    cvs.addEventListener('touchend', this.onTouchend.bind(this))
     document.addEventListener('keyup', this.onKeyup.bind(this))
     window.addEventListener('resize', this.onResize.bind(this))
   }
@@ -232,8 +283,6 @@ class Game {
   removeListeners () {
     const { cvs } = this
     cvs.removeEventListener('touchstart',this.onTouchstart)
-    cvs.removeEventListener('touchmove', this.onTouchmove)
-    cvs.removeEventListener('touchend', this.onTouchend)
     document.removeEventListener('keyup', this.onKeyup)
     window.removeEventListener('resize', this.onResize)
   }
