@@ -1,23 +1,4 @@
 class AIPlayer {
-  play() {
-    let pos = null, score = 0
-    this.game.chessData.forEach(_ => {
-      if (_.num) return
-      let curScore = this.judge(_)
-      if (curScore > score) {
-        score = curScore
-        pos = _
-      }
-    })
-    return pos
-  }
-
-  judge(pos) {
-    let a = this.LR(pos, 1) + this.TB(pos, 1) + this.RB(pos, 1) + this.RT(pos, 1) + 100
-    let b = this.LR(pos, 2) + this.TB(pos, 2) + this.RB(pos, 2) + this.RT(pos, 2)
-    return a + b
-  }
-
   getCoords(pos, num) {
     let { row, col } = pos
     return this.game.chessData.map(_ => {
@@ -132,62 +113,9 @@ class AIPlayer {
     count -= 1
     return this.model(count, death)
   }
-
-  model(count, death) {
-    var LEVEL_ONE = 0 //单子
-    var LEVEL_TWO = 1 //眠2，眠1
-    var LEVEL_THREE = 1500 //眠3，活2
-    var LEVEL_FOER = 4000 //冲4，活3
-    var LEVEL_FIVE = 10000 //活4
-    var LEVEL_SIX = 100000 //成5
-    if (count === 1 && death == 1) {
-      return LEVEL_TWO //眠1
-    } else if (count === 2) {
-      if (death === 0) {
-        return LEVEL_THREE //活2
-      } else if (death === 1) {
-        return LEVEL_TWO //眠2
-      } else {
-        return LEVEL_ONE //死棋
-      }
-    } else if (count === 3) {
-      if (death == 0) {
-        return LEVEL_FOER //活3
-      } else if (death === 1) {
-        return LEVEL_THREE //眠3
-      } else {
-        return LEVEL_ONE //死棋
-      }
-    } else if (count === 4) {
-      if (death === 0) {
-        return LEVEL_FIVE //活4
-      } else if (death === 1) {
-        return LEVEL_FOER //冲4
-      } else {
-        return LEVEL_ONE //死棋
-      }
-    } else if (count === 5) {
-      return LEVEL_SIX //成5
-    }
-    return LEVEL_ONE
-  }
 }
 
 class Game {
-  onClick(event) {
-    let { onGameover = () => {} } = this.callbacks
-    let curChess = this.getCurrent(event)
-    if (!curChess) return
-    curChess.num = 2
-    this.drawUI()
-    if (this.checkResult(curChess)) return setTimeout(onGameover, 100, curChess.num)
-    let aiCurChess = this.aiplayer.play()
-    aiCurChess.num = 1
-    this.drawUI()
-    this.drawActiveAIChess(aiCurChess)
-    if (this.checkResult(aiCurChess)) setTimeout(onGameover, 100, aiCurChess.num)
-  }
-
   checkResult(chess) {
     return this.checkTB(chess) || this.checkLR(chess) || this.checkZXie(chess) || this.checkFXie(chess)
   }
@@ -252,16 +180,6 @@ class Game {
       count++
     }
     return count >= 4 ? chess.num : 0
-  }
-
-  drawActiveAIChess(chess) {
-    let { x, y } = chess, { chessRadius: r, context } = this
-    context.save()
-    context.fillStyle = '#ccc'
-    context.beginPath()
-    context.arc(x, y, r * .7, 0, Math.PI * 2)
-    context.fill()
-    context.restore()
   }
 }
 

@@ -28,6 +28,10 @@ export default {
       },
       onOver: () => {
         alert('你输了！请点击[新游戏]，重新开始')
+      },
+      onDraw: () => {
+        alert('平局！')
+        this.game?.start()
       }
     })
     this.game.start()
