@@ -34,10 +34,10 @@ const games: { [key: string]: GameItemValue } = {
     name: '数独',
     component: () => import('./sudoku/Index.vue')
   },
-  // wzq: {
-  //   name: '五子棋之人机大战',
-  //   component: () => import('./wzq/Index.vue')
-  // },
+  wzq: {
+    name: '五子棋之人机大战',
+    component: () => import('./wzq/Index.vue')
+  },
   xxk: {
     name: '消消看',
     component: () => import('./xxk/Index.vue')
