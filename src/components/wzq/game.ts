@@ -336,7 +336,7 @@ class Game {
 
   private checkResult (chess: Chess) {
     const nums = genArr(9).map((_, i) => i - 4)
-    const isDone = (fn: (num: number) => (_: Chess) => Boolean) => nums.reduce((t, num) => {
+    const isDone = (fn: (num: number) => (_: Chess) => boolean) => nums.reduce((t, num) => {
       const item = this.chessList.find(fn(num))
       return item ? item.type === chess.type ? ++t : 0 : t > 4 ? t : 0
     }, 0) > 4
