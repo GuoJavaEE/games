@@ -315,12 +315,7 @@ class Game {
 
   genGrid () {
     return genArr(this.rows).reduce((t: Cell[], _, row) => {
-      return [
-        ...t,
-        ...genArr(this.cols).map((_, col) => {
-          return { row, col }
-        })
-      ]
+      return [...t, ...genArr(this.cols).map((_, col) => ({ row, col }))]
     }, [])
   }
 
@@ -340,41 +335,15 @@ class Game {
   }
 
   private checkResult (chess: Chess) {
-    return this.checkPositive(chess) || this.checkOblique(chess)
-  }
-
-  private checkPositive (chess: Chess) {
-    const arr = this.chessList
     const nums = genArr(9).map((_, i) => i - 4)
-    return nums.reduce((t, num) => {
-      const item = arr.find(_ => {
-        return _.col === chess.col && _.row === chess.row - num
-      })
-      return item ? item.type === chess.type ? ++t : 0 : t > 4 ? t : 0
-    }, 0) > 4 ||
-    nums.reduce((t, num) => {
-      const item = arr.find(_ => {
-        return _.row === chess.row && _.col === chess.col - num
-      })
+    const isDone = (fn: (num: number) => (_: Chess) => Boolean) => nums.reduce((t, num) => {
+      const item = this.chessList.find(fn(num))
       return item ? item.type === chess.type ? ++t : 0 : t > 4 ? t : 0
     }, 0) > 4
-  }
-
-  private checkOblique (chess: Chess) {
-    const arr = this.chessList
-    const nums = genArr(9).map((_, i) => i - 4)
-    return nums.reduce((t, num) => {
-      const item = arr.find(_ => {
-        return _.row === chess.row + num && _.col === chess.col - num
-      })
-      return item ? item.type === chess.type ? ++t : 0 : t > 4 ? t : 0
-    }, 0) > 4 ||
-    nums.reduce((t, num) => {
-      const item = arr.find(_ => {
-        return _.row === chess.row + num && _.col === chess.col + num
-      })
-      return item ? item.type === chess.type ? ++t : 0 : t > 4 ? t : 0
-    }, 0) > 4
+    return isDone(num => _ => _.col === chess.col && _.row === chess.row - num) ||
+      isDone(num => _ => _.row === chess.row && _.col === chess.col - num) ||
+      isDone(num => _ => _.row === chess.row + num && _.col === chess.col - num) ||
+      isDone(num => _ => _.row === chess.row + num && _.col === chess.col + num)
   }
 
   private onClick (event: MouseEvent) {
