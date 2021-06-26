@@ -11,10 +11,17 @@ class Chess {
   constructor (public row: number, public col: number, public type: ChessType) {}
 
   draw (ctx: CanvasRenderingContext2D, bSize: number, chessSize: number, bSpace: number) {
+    const space = bSize + bSpace
     ctx.save()
     ctx.fillStyle = this.type === 'black' ? '#000' : '#fff'
     ctx.beginPath()
-    // ctx.arc()
+    ctx.arc(
+      this.col * space + space / 2,
+      this.row * space + space / 2,
+      chessSize / 2,
+      0,
+      Math.PI * 2
+    )
     ctx.fill()
     ctx.restore()
   }
@@ -50,7 +57,7 @@ class Game {
     this.drawUI()
   }
 
-  drawGrid () {
+  private drawGrid () {
     const { ctx, cvs, bSize, bSpace, rows, cols } = this
     const space = bSize + bSpace
     ctx.save()
@@ -79,7 +86,7 @@ class Game {
     ctx.restore()
   }
 
-  drawUI () {
+  private drawUI () {
     const { ctx, cvs } = this
     ctx.clearRect(0, 0, cvs.width, cvs.height)
     this.drawGrid()
@@ -88,27 +95,37 @@ class Game {
     })
   }
 
-  updateSize () {
+  private updateSize () {
     const width = this.cvs.offsetWidth * this.pixRatio
     this.bSize = (width - this.cols * this.bSpace) / this.cols
-    this.chessSize = this.bSize * .4
+    this.chessSize = this.bSize * .6
     this.cvs.width = this.cvs.height = width
   }
 
-  getCurrent (event: MouseEvent) {
+  private getCurrent (event: MouseEvent) {
     const ex = (event.offsetX || event.pageX) * this.pixRatio
     const ey = (event.offsetY || event.pageY) * this.pixRatio
-    // const row = 
+    const { bSize, bSpace } = this
+    const space = bSize + bSpace
+    const row = Math.round((ey - space / 2) / space)
+    const col = Math.round((ex - space / 2) / space)
+    if (this.chessList.some(_ => _.row === row && _.col === col)) return
+    const cx = col * space + space / 2
+    const cy = row * space + space / 2
+    if (Math.pow(ex - cx, 2) + Math.pow(ey - cy, 2) < Math.pow(this.chessSize / 2, 2)) {
+      return new Chess(row, col, 'black')
+    }
   }
 
-  onClick (event: MouseEvent) {
+  private onClick (event: MouseEvent) {
     const chess = this.getCurrent(event)
-    // if (chess) {
-    //   console.log(chess)
-    // }
+    if (chess) {
+      this.chessList.push(chess)
+      this.drawUI()
+    }
   }
 
-  onResize () {
+  private onResize () {
     this.updateSize()
     this.drawUI()
   }

@@ -263,13 +263,6 @@ class Game {
     context.fill()
     context.restore()
   }
-
-  getCurrent(event) {
-    let { pow: p } = Math
-    let ex = (event.offsetX || event.pageX) * this.pixRatio
-    let ey = (event.offsetY || event.pageY) * this.pixRatio
-    return this.chessData.find(_ => !_.num && p(ex - _.x, 2) + p(ey - _.y, 2) < p(this.chessRadius, 2))
-  }
 }
 
 export default Game
