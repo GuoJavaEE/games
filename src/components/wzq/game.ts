@@ -71,13 +71,13 @@ class AIPlayer {
   }
 
   model (count: number, death: number) {
-    var LEVEL_ONE = 0 // 单子
-    var LEVEL_TWO = 1 // 眠2，眠1
-    var LEVEL_THREE = 1500 // 眠3，活2
-    var LEVEL_FOER = 4000 // 冲4，活3
-    var LEVEL_FIVE = 10000 // 活4
-    var LEVEL_SIX = 100000 // 成5
-    if (count === 1 && death == 1) {
+    const LEVEL_ONE = 0 // 单子
+    const LEVEL_TWO = 1 // 眠2，眠1
+    const LEVEL_THREE = 1500 // 眠3，活2
+    const LEVEL_FOER = 4000 // 冲4，活3
+    const LEVEL_FIVE = 10000 // 活4
+    const LEVEL_SIX = 100000 // 成5
+    if (count === 1 && death === 1) {
       return LEVEL_TWO // 眠1
     } else if (count === 2) {
       if (death === 0) {
@@ -88,7 +88,7 @@ class AIPlayer {
         return LEVEL_ONE // 死棋
       }
     } else if (count === 3) {
-      if (death == 0) {
+      if (death === 0) {
         return LEVEL_FOER // 活3
       } else if (death === 1) {
         return LEVEL_THREE // 眠3
