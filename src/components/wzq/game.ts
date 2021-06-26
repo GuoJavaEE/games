@@ -9,7 +9,7 @@ interface GameCallbacks {
 type ChessType = 'black' | 'white'
 
 class Chess {
-  constructor (public row: number, public col: number, public type: ChessType) {}
+  constructor (public row: number, public col: number, public type?: ChessType) {}
 
   draw (ctx: CanvasRenderingContext2D, bSize: number, chessSize: number, bSpace: number) {
     const space = bSize + bSpace
@@ -54,20 +54,128 @@ class AIPlayer {
     return num1 + num2
   }
 
+  genChessList (cell: Cell, type: ChessType) {
+    const chessList = this.game.getChessList()
+    return this.game.getGrid().map(_ => {
+      const chess = chessList.find(item => item.col === _.col && item.row === _.row)
+      return new Chess(_.row, _.col, _.row === cell.row && _.col === cell.col ? type : chess?.type)
+    })
+  }
+
   LR (cell: Cell, type: ChessType) {
-    return 0
+    let death = 0
+    let count = 0
+    let { row, col } = cell
+    let { rows } = this.game
+    const chessList = this.genChessList(cell, type)
+    for (let i = row; i >= 0; i--) {
+      const chess = chessList.find(_ => _.row === i && _.col === col)
+      if (chess && chess.type === type) {
+        count++
+      } else {
+        chess?.type && death++
+        break
+      }
+    }
+    for (let i = row; i < rows; i++) {
+      const chess = chessList.find(_ => _.row === i && _.col === col)
+      if (chess && chess.type === type) {
+        count++
+      } else {
+        chess?.type && death++
+        break
+      }
+    }
+    return this.model(--count, death)
   }
 
   TB (cell: Cell, type: ChessType) {
-    return 0
+    let death = 0
+    let count = 0
+    let { row, col } = cell
+    const { cols } = this.game
+    const chessList = this.genChessList(cell, type)
+    for (let i = col; i >= 0; i--) {
+      let chess = chessList.find(_ => _.col === i && _.row === row)
+      if (chess && chess.type === type) {
+        count++
+      } else {
+        chess?.type && death++
+        break
+      }
+    }
+    for (let i = col; i < cols; i++) {
+      let chess = chessList.find(_ => _.col === i && _.row === row)
+      if (chess && chess.type === type) {
+        count++
+      } else {
+        chess?.type && death++
+        break
+      }
+    }
+    return this.model(--count, death)
   }
 
   RB (cell: Cell, type: ChessType) {
-    return 0
+    let death = 0
+    let count = 0
+    const { row, col } = cell
+    const { rows, cols } = this.game
+    const chessList = this.genChessList(cell, type)
+    for (let i = row, j = col; i >= 0 && j >= 0;) {
+      let _ = chessList.find(_ => _.row === i && _.col === j)
+      if (_ && _.type === type) {
+        count++
+      } else {
+        _?.type && death++
+        break
+      }
+      i--
+      j--
+    }
+    for (let i = row, j = col; i < rows && j < cols;) {
+      let _ = chessList.find(_ => _.row === i && _.col === j)
+      if (_ && _.type === type) {
+        count++
+      } else {
+        _?.type && death++
+        break
+      }
+      i++
+      j++
+    }
+    return this.model(--count, death)
   }
 
   RT (cell: Cell, type: ChessType) {
-    return 0
+    let death = 0
+    let count = 0
+    const { row, col } = cell
+    const { rows, cols } = this.game
+    const chessList = this.genChessList(cell, type)
+    for (let i = row, j = col; i >= 0 && j < cols;) {
+      let _ = chessList.find(_ => _.row === i && _.col === j)
+      if (_ && _.type === type) {
+        count++
+      } else {
+        _?.type && death++
+        break
+      }
+      i--
+      j++
+    }
+    for (let i = row, j = col; i < rows && j >= 0;) {
+      let _ = chessList.find(_ => _.row === i && _.col === j)
+      if (_ && _.type === type) {
+        count++
+      } else {
+        _?.type && death++
+        break
+      }
+      i++
+      j--
+    }
+    return this.model(--count, death)
   }
 
   model (count: number, death: number) {
@@ -134,6 +242,10 @@ class Game {
     this.chessList = []
     this.updateSize()
     this.drawUI()
+  }
+
+  getChessList () {
+    return this.chessList
   }
 
   private drawGrid () {
@@ -231,14 +343,19 @@ class Game {
 
   private checkPositive (chess: Chess) {
     const arr = this.chessList
-    const isDone = (chessList: Chess[]) => {
-      return chessList.reduce((t, _) => _.type === chess.type ? ++t : 0, 0) > 4
-    }
-    return isDone(
-      arr.filter(_ => _.col === chess.col).sort((a, b) => a.row - b.row)
-    ) || isDone(
-      arr.filter(_ => _.row === chess.row).sort((a, b) => a.col - b.col)
-    )
+    const nums = genArr(9).map((_, i) => i - 4)
+    return nums.reduce((t, num) => {
+      const item = arr.find(_ => {
+        return _.col === chess.col && _.row === chess.row - num
+      })
+      return item ? item.type === chess.type ? ++t : 0 : t > 4 ? t : 0
+    }, 0) > 4 ||
+    nums.reduce((t, num) => {
+      const item = arr.find(_ => {
+        return _.row === chess.row && _.col === chess.col - num
+      })
+      return item ? item.type === chess.type ? ++t : 0 : t > 4 ? t : 0
+    }, 0) > 4
   }
 
   private checkOblique (chess: Chess) {
@@ -248,13 +365,13 @@ class Game {
       const item = arr.find(_ => {
         return _.row === chess.row + num && _.col === chess.col - num
       })
-      return item ? item.type === chess.type ? ++t : 0 : t
+      return item ? item.type === chess.type ? ++t : 0 : t > 4 ? t : 0
     }, 0) > 4 ||
     nums.reduce((t, num) => {
       const item = arr.find(_ => {
         return _.row === chess.row + num && _.col === chess.col + num
       })
-      return item ? item.type === chess.type ? ++t : 0 : t
+      return item ? item.type === chess.type ? ++t : 0 : t > 4 ? t : 0
     }, 0) > 4
   }
 
@@ -264,7 +381,6 @@ class Game {
     if (chess) {
       this.chessList.push(chess)
       this.drawUI()
-      console.log(this.checkResult(chess))
       if (this.checkResult(chess)) {
         this.isGameover = true
         return delayCall(this.callbacks.onDone)
