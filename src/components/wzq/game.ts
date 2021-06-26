@@ -131,6 +131,7 @@ class Game {
 
   start () {
     this.isGameover = false
+    this.chessList = []
     this.updateSize()
     this.drawUI()
   }
@@ -224,8 +225,37 @@ class Game {
     }
   }
 
-  checkResult (chess: Chess) {
-    return false
+  private checkResult (chess: Chess) {
+    return this.checkPositive(chess) || this.checkOblique(chess)
+  }
+
+  private checkPositive (chess: Chess) {
+    const arr = this.chessList
+    const isDone = (chessList: Chess[]) => {
+      return chessList.reduce((t, _) => _.type === chess.type ? ++t : 0, 0) > 4
+    }
+    return isDone(
+      arr.filter(_ => _.col === chess.col).sort((a, b) => a.row - b.row)
+    ) || isDone(
+      arr.filter(_ => _.row === chess.row).sort((a, b) => a.col - b.col)
+    )
+  }
+
+  private checkOblique (chess: Chess) {
+    const arr = this.chessList
+    const nums = genArr(9).map((_, i) => i - 4)
+    return nums.reduce((t, num) => {
+      const item = arr.find(_ => {
+        return _.row === chess.row + num && _.col === chess.col - num
+      })
+      return item ? item.type === chess.type ? ++t : 0 : t
+    }, 0) > 4 ||
+    nums.reduce((t, num) => {
+      const item = arr.find(_ => {
+        return _.row === chess.row + num && _.col === chess.col + num
+      })
+      return item ? item.type === chess.type ? ++t : 0 : t
+    }, 0) > 4
   }
 
   private onClick (event: MouseEvent) {
@@ -234,6 +264,7 @@ class Game {
     if (chess) {
       this.chessList.push(chess)
       this.drawUI()
+      console.log(this.checkResult(chess))
       if (this.checkResult(chess)) {
         this.isGameover = true
         return delayCall(this.callbacks.onDone)
