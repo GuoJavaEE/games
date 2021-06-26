@@ -37,7 +37,7 @@ class AIPlayer {
   constructor (public game: Game) {}
 
   getCurrent (chessList: Chess[]) {
-    const { cell } = this.game.getGrid().filter(a => {
+    const { cell } = this.game.grid.filter(a => {
       return !chessList.some(b => b.row === a.row && b.col === a.col)
     }).reduce((t: { score: number, cell?: Cell }, _) => {
       const score = this.judge(_)
@@ -56,7 +56,7 @@ class AIPlayer {
 
   genChessList (cell: Cell, type: ChessType) {
     const chessList = this.game.getChessList()
-    return this.game.getGrid().map(_ => {
+    return this.game.grid.map(_ => {
       const chess = chessList.find(item => item.col === _.col && item.row === _.row)
       return new Chess(_.row, _.col, _.row === cell.row && _.col === cell.col ? type : chess?.type)
     })
@@ -229,6 +229,7 @@ class Game {
   private isGameover = false
   private aiPlayer
   private chessList: Chess[] = []
+  grid: Cell[] = []
 
   constructor (private cvs: HTMLCanvasElement, private callbacks: GameCallbacks) {
     this.ctx = cvs.getContext('2d') as CanvasRenderingContext2D
@@ -240,6 +241,7 @@ class Game {
   start () {
     this.isGameover = false
     this.chessList = []
+    this.grid = this.genGrid()
     this.updateSize()
     this.drawUI()
   }
@@ -311,7 +313,7 @@ class Game {
     this.cvs.width = this.cvs.height = width
   }
 
-  getGrid () {
+  genGrid () {
     return genArr(this.rows).reduce((t: Cell[], _, row) => {
       return [
         ...t,
@@ -392,7 +394,11 @@ class Game {
         this.drawLastAiChess(aiChess)
         if (this.checkResult(aiChess)) {
           this.isGameover = true
-          delayCall(this.callbacks.onOver)
+          return delayCall(this.callbacks.onOver)
+        }
+        if (this.chessList.length >= this.rows * this.cols) {
+          this.isGameover = true
+          return delayCall(this.callbacks.onDraw)
         }
       } else {
         this.isGameover = true
