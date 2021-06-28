@@ -14,10 +14,10 @@ const games: { [key: string]: GameItemValue } = {
     name: '经典连连看',
     component: () => import('./llk/Index.vue')
   },
-  // maze: {
-  //   name: '走出迷宫',
-  //   component: () => import('./maze/Index.vue')
-  // },
+  maze: {
+    name: '走出迷宫',
+    component: () => import('./maze/Index.vue')
+  },
   mine: {
     name: '经典扫雷',
     component: () => import('./mine/Index.vue')
