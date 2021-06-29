@@ -31,26 +31,6 @@ class Game {
     this.endCoord = this.getEndCoord()
     this.drawUI()
   }
-  getCells() {
-    let cells = []
-    this.grid.forEach(sub => {
-      sub.forEach(_ => _ && _.isCell && cells.push(_))
-    })
-    return cells
-  }
-  getRoundCell(cell, arrow) {
-    let { row, col } = cell, { grid } = this
-    switch (arrow) {
-      case 'T':
-        return grid[row - 2] && grid[row - 2][col]
-      case 'R':
-        return grid[row][col + 2]
-      case 'B':
-        return grid[row + 2] && grid[row + 2][col]
-      case 'L':
-        return grid[row][col - 2]
-    }
-  }
   removeWall(cell, arrow) {
     let { row, col } = cell, { grid } = this, curWall
     if (arrow === 'T') {
@@ -90,23 +70,6 @@ class Game {
       checkedCells[checkedCells.length] = curCell
     }
     while (!func()) { }
-  }
-  getStartPos() {
-    let col = utils.getRndInt(0, this.grid[0].length - 1)
-    col = col % 2 ? col - 1 : col
-    let space = this.cellW + this.wallW
-    let x = col * .5 * space + space * .5
-    let y = this.wallW + this.cellW * .5
-    return { x, y }
-  }
-  getEndCoord() {
-    let row = this.grid.length - 1
-    let col = utils.getRndInt(0, this.grid[row].length - 1)
-    col = col % 2 ? col - 1 : col
-    let space = this.cellW + this.wallW
-    let x = col * .5 * space + this.wallW * .5
-    let y = this.height - this.wallW
-    return { row, col, x, y }
   }
   isImpact(pixData) {
     for (let i = 0, len = pixData.length; i < len; i += 4) {
@@ -213,41 +176,4 @@ class Game {
     }
     if (ex < offLeft || ex > offLeft + offWidth || ey < offTop || ey > offTop + offWidth) this.onDocKeyup()
   }
-  drawStartPos() {
-    let { context, startPos, wallW, cellW } = this, { x, y } = startPos
-    context.save()
-    context.fillStyle = '#e33'
-    context.beginPath()
-    context.moveTo(x, y)
-    context.lineTo(x - cellW * .5, wallW)
-    context.lineTo(x + cellW * .5, wallW)
-    context.closePath()
-    context.fill()
-    context.restore()
-  }
-  drawBall() {
-    let { gameContext: context, cellW } = this, { x, y, r } = this.ball
-    context.clearRect(0, 0, this.width, this.height)
-    context.save()
-    context.fillStyle = '#ff0'
-    context.beginPath()
-    context.arc(x, y, r, 0, 2 * Math.PI)
-    context.fill()
-    context.restore()
-  }
-  drawEndCoord() {
-    let { x, y } = this.endCoord, { context, cellW, wallW } = this
-    context.clearRect(x, y - 1, cellW, wallW + 1)
-    context.save()
-    context.strokeStyle = '#0f0'
-    context.beginPath()
-    context.moveTo(x + cellW * .2, y - cellW * .4)
-    context.lineTo(x + cellW * .5, y)
-    context.lineTo(x + cellW * .8, y - cellW * .4)
-    context.moveTo(x + cellW * .5, y)
-    context.lineTo(x + cellW * .5, y - cellW * .8)
-    context.stroke()
-    context.restore()
-  }
 }
-export default Game
