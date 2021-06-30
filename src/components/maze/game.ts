@@ -1,4 +1,5 @@
-import { getPixRatio, getRandInt } from "../../utils"
+import { genArr, getPixRatio, getRandInt } from "../../utils"
+import styleModule from './style.module.less'
 
 interface GameCallbacks {
   onDone?: Function
@@ -43,24 +44,31 @@ class Game {
   private startPoint: Point | undefined
   private endPoint: Point | undefined
   private ball: Ball | undefined
+  private moveSpeed = 0
+  private tid: number | undefined = undefined
+  private aniFrame: number | undefined = undefined
+  private gameHandle: HTMLDivElement
 
   constructor (private cvs: HTMLCanvasElement, private callbacks: GameCallbacks) {
     this.ctx = cvs.getContext('2d') as CanvasRenderingContext2D
     this.pixRatio = getPixRatio(this.ctx)
+    this.gameHandle = this.createController()
   }
 
   start (options: UiOptions = {}) {
+    this.stopTimer()
     this.updateSize(options)
     this.grid = this.genGrid()
     this.startPoint = this.getStartPoint()
     this.endPoint = this.getEndPoint()
     this.ball = { ...this.startPoint, r: this.cellWidth * .32 }
+    this.moveSpeed = Math.floor(Math.min(this.pixRatio * 2, (this.cellWidth - this.ball.r * 2 - this.pixRatio) / 2)) || 1
+    this.genMap()
     this.drawUI()
-    this.genMaze()
   }
 
   updateSize (options: UiOptions) {
-    this.cols = options.cols || this.cols || 15
+    this.cols = options.cols || this.cols || 30
     const width = this.cvs.offsetWidth * this.pixRatio
     const maxWallWidth = width / (this.cols * 2 + 1)
     const wallWidth = Math.min(maxWallWidth, options.wallWidth || this.pixRatio)
@@ -128,7 +136,7 @@ class Game {
   }
 
   drawBall () {
-    const { ctx, cellWidth } = this
+    const { ctx } = this
     const { x, y, r } = this.ball as Ball
     ctx.save()
     ctx.fillStyle = '#4298f2'
@@ -201,53 +209,87 @@ class Game {
     return grid
   }
 
-  getFirstCell () {
+  getCells () {
+    const cells = []
     const { realRows, realCols } = this
-    for (let row = 0; row < realRows; row++) {
-      for (let col = 0; col < realCols; col++) {
-        const item = this.grid[row][col]
-        if (item.type === BlockType.CELL) return item
+    for (let row = 0; row < realRows; row += 2) {
+      for (let col = 0; col < realCols; col += 2) {
+        cells.push(this.grid[row][col])
+      }
+    }
+    return cells
+  }
+
+  genMap () {
+    const { grid } = this
+    const get = (row: number, col: number) => grid[row] && grid[row][col]
+    const waitCheckCells = this.getCells()
+    for (let i = 0, len = waitCheckCells.length; i < len; i++) {
+      const { row, col } = waitCheckCells[i]
+      const walls = [[row - 1, col], [row, col - 1], [row + 1, col], [row, col - 1]]
+        .map((_) => get(..._ as [number, number]))
+        .filter(_ => _ && _.type === BlockType.WALL)
+      const wall = walls[getRandInt(0, walls.length - 1)]
+      if (wall) {
+        wall.type = BlockType.CELL
       }
     }
   }
 
-  getSiblingCell (cell: Block, dir: Direction) {
-    const { grid } = this
-    const { row, col } = cell
-    const get = (row: number, col: number) => grid[row] && grid[row][col]
-    switch (dir) {
-      case Direction.TOP:
-        return get(row - 2, col)
-      case Direction.RIGHT:
-        return get(row, col + 2)
-      case Direction.BOTTOM:
-        return get(row + 2, col)
-      case Direction.LEFT:
-        return get(row, col - 2)
-    }
+  createController () {
+    const div = document.createElement('div')
+    div.className = styleModule.gameHandle
+    div.innerHTML = genArr(4).map(_ => '<a></a>').join('')
+    this.cvs.parentElement?.appendChild(div)
+    return div
   }
 
-  genMaze () {
-    const checkedCells = []
-    let cell = this.getFirstCell()
+  stopTimer () {
+    clearTimeout(this.tid)
+    cancelAnimationFrame(this.aniFrame as number)
+    this.tid = this.aniFrame = undefined
+  }
+
+  move (dir: Direction) {
+
+  }
+
+  onHandleTouchstart (event: TouchEvent) {
+
   }
 
   onResize () {
 
   }
 
-  onKeyup () {
-
+  onKeyup (event: KeyboardEvent) {
+    const { keyCode } = event
+    const T = [87, 38]
+    const R = [68, 39]
+    const B = [83, 40]
+    const L = [65, 37]
+    const { TOP, RIGHT, BOTTOM, LEFT } = Direction
+    if (T.includes(keyCode)) {
+      this.move(TOP)
+    } else if (R.includes(keyCode)) {
+      this.move(RIGHT)
+    } else if (B.includes(keyCode)) {
+      this.move(BOTTOM)
+    } else if (L.includes(keyCode)) {
+      this.move(LEFT)
+    }
   }
 
   addListeners () {
     window.addEventListener('resize', this.onResize.bind(this))
     document.addEventListener('keyup', this.onKeyup.bind(this))
+    this.gameHandle.addEventListener('touchstart', this.onHandleTouchstart.bind(this))
   }
 
   removeListeners () {
     window.removeEventListener('resize', this.onResize)
     document.removeEventListener('keyup', this.onKeyup)
+    this.gameHandle.removeEventListener('touchstart', this.onHandleTouchstart)
   }
 }
 
