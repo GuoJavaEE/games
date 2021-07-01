@@ -236,7 +236,7 @@ class Game {
       const rCell = this.getBlock(cell, RIGHT)
       const bCell = this.getBlock(cell, BOTTOM)
       const lCell = this.getBlock(cell, LEFT)
-      let cells = [tCell, rCell, bCell, lCell].filter(_ => _ && !_.flag)
+      const cells = [tCell, rCell, bCell, lCell].filter(_ => _ && !_.flag)
       if (cells.length) {
         const current = cells[getRandInt(0, cells.length - 1)]
         waitCheckCells.push(...cells)
