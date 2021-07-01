@@ -1,4 +1,4 @@
-import { genArr, getPixRatio, getRandInt } from "../../utils"
+import { delayCall, genArr, getPixRatio, getRandInt } from "../../utils"
 import styleModule from './style.module.less'
 
 interface GameCallbacks {
@@ -68,7 +68,7 @@ class Game {
   }
 
   updateSize (options: UiOptions) {
-    this.cols = options.cols || this.cols || 30
+    this.cols = options.cols || this.cols || 20
     const width = this.cvs.offsetWidth * this.pixRatio
     const maxWallWidth = width / (this.cols * 2 + 1)
     const wallWidth = Math.min(maxWallWidth, options.wallWidth || this.pixRatio)
@@ -151,7 +151,7 @@ class Game {
     ctx.clearRect(0, 0, cvs.width, cvs.height)
     this.drawStartPosition()
     ctx.save()
-    ctx.strokeStyle = '#000'
+    ctx.strokeStyle = '#555'
     ctx.lineWidth = wallWidth
     ctx.strokeRect(wallWidth / 2, wallWidth / 2, cvs.width - wallWidth, cvs.height - wallWidth)
     this.grid.forEach(rows => {
@@ -209,31 +209,48 @@ class Game {
     return grid
   }
 
-  getCells () {
-    const cells = []
-    const { realRows, realCols } = this
-    for (let row = 0; row < realRows; row += 2) {
-      for (let col = 0; col < realCols; col += 2) {
-        cells.push(this.grid[row][col])
-      }
-    }
-    return cells
+  getBlock (cell: Block, dir: Direction, type = BlockType.CELL) {
+    const { grid } = this
+    const get = (row: number, col: number) => grid[row] && grid[row][col]
+    const { row, col } = cell
+    const step = type === BlockType.WALL ? 1 : 2
+    return dir === Direction.TOP
+      ? get(row - step, col)
+      : dir === Direction.RIGHT
+        ? get(row, col + step)
+        : dir === Direction.BOTTOM
+          ? get(row + step, col)
+          : get(row, col - step)
   }
 
   genMap () {
-    const { grid } = this
-    const get = (row: number, col: number) => grid[row] && grid[row][col]
-    const waitCheckCells = this.getCells()
-    for (let i = 0, len = waitCheckCells.length; i < len; i++) {
-      const { row, col } = waitCheckCells[i]
-      const walls = [[row - 1, col], [row, col - 1], [row + 1, col], [row, col - 1]]
-        .map((_) => get(..._ as [number, number]))
-        .filter(_ => _ && _.type === BlockType.WALL)
-      const wall = walls[getRandInt(0, walls.length - 1)]
-      if (wall) {
-        wall.type = BlockType.CELL
+    const startTime = Date.now()
+    const waitCheckCells = [this.grid[0][0]]
+    const { TOP, RIGHT, BOTTOM, LEFT } = Direction
+    let count = 0
+    while (waitCheckCells.length && ++count < 10000) {
+      const cell = waitCheckCells.pop() as Block
+      if (cell.flag) continue
+      cell.flag = true
+      const tCell = this.getBlock(cell, TOP)
+      const rCell = this.getBlock(cell, RIGHT)
+      const bCell = this.getBlock(cell, BOTTOM)
+      const lCell = this.getBlock(cell, LEFT)
+      let cells = [tCell, rCell, bCell, lCell].filter(_ => _ && !_.flag)
+      if (cells.length) {
+        const current = cells[getRandInt(0, cells.length - 1)]
+        waitCheckCells.push(...cells)
+        const wall = this.getBlock(
+          cell,
+          current === tCell ? TOP : current === rCell ? RIGHT : current === bCell ? BOTTOM : LEFT,
+          BlockType.WALL
+        )
+        if (wall) {
+          wall.type = BlockType.CELL
+        }
       }
     }
+    console.log(Date.now() - startTime, count)
   }
 
   createController () {
