@@ -262,36 +262,6 @@ class Game {
     console.log(Date.now() - startTime)
   }
 
-  genMap2 () {
-    const startTime = Date.now()
-    const waitCheckCells = [this.grid[0][0]]
-    const { TOP, RIGHT, BOTTOM, LEFT } = Direction
-    let count = 0
-    while (waitCheckCells.length && ++count < 10000) {
-      const cell = waitCheckCells.pop() as Block
-      if (cell.flag) continue
-      cell.flag = true
-      const tCell = this.getBlock(cell, TOP)
-      const rCell = this.getBlock(cell, RIGHT)
-      const bCell = this.getBlock(cell, BOTTOM)
-      const lCell = this.getBlock(cell, LEFT)
-      const cells = [tCell, rCell, bCell, lCell].filter(_ => _ && !_.flag)
-      if (cells.length) {
-        const current = cells[getRandInt(0, cells.length - 1)]
-        waitCheckCells.push(...cells)
-        const wall = this.getBlock(
-          cell,
-          current === tCell ? TOP : current === rCell ? RIGHT : current === bCell ? BOTTOM : LEFT,
-          BlockType.WALL
-        )
-        if (wall) {
-          wall.type = BlockType.CELL
-        }
-      }
-    }
-    console.log(Date.now() - startTime, count)
-  }
-
   createController () {
     const div = document.createElement('div')
     div.className = styleModule.gameHandle
