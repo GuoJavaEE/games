@@ -1,4 +1,4 @@
-import { delayCall, genArr, getPixRatio, getRandInt } from "../../utils"
+import { genArr, getPixRatio, getRandInt } from "../../utils"
 import styleModule from './style.module.less'
 
 interface GameCallbacks {
@@ -48,8 +48,9 @@ class Game {
   private tid: number | undefined = undefined
   private aniFrame: number | undefined = undefined
   private gameHandle: HTMLDivElement
+  private wallColor = '#515a6e'
 
-  constructor (private cvs: HTMLCanvasElement, private callbacks: GameCallbacks) {
+  constructor (private cvs: HTMLCanvasElement, private callbacks: GameCallbacks = {}) {
     this.ctx = cvs.getContext('2d') as CanvasRenderingContext2D
     this.pixRatio = getPixRatio(this.ctx)
     this.gameHandle = this.createController()
@@ -67,11 +68,11 @@ class Game {
     this.drawUI()
   }
 
-  updateSize (options: UiOptions) {
+  updateSize (options: UiOptions = {}) {
     this.cols = options.cols || this.cols || 20
     const width = this.cvs.offsetWidth * this.pixRatio
     const maxWallWidth = width / (this.cols * 2 + 1)
-    const wallWidth = Math.min(maxWallWidth, options.wallWidth || this.pixRatio)
+    const wallWidth = Math.min(maxWallWidth, options.wallWidth || this.pixRatio * 5)
     const cellWidth = (width - (this.cols + 1) * wallWidth) / this.cols
     const maxHeight = (this.cvs.parentElement?.offsetHeight as number) * this.pixRatio
     const maxRows = Math.floor((maxHeight - wallWidth) / (cellWidth + wallWidth))
@@ -151,7 +152,7 @@ class Game {
     ctx.clearRect(0, 0, cvs.width, cvs.height)
     this.drawStartPosition()
     ctx.save()
-    ctx.strokeStyle = '#555'
+    ctx.strokeStyle = this.wallColor
     ctx.lineWidth = wallWidth
     ctx.strokeRect(wallWidth / 2, wallWidth / 2, cvs.width - wallWidth, cvs.height - wallWidth)
     this.grid.forEach(rows => {
@@ -225,6 +226,44 @@ class Game {
 
   genMap () {
     const startTime = Date.now()
+    let curCell: Block = this.grid[0][0]
+    const history: Block[] = [curCell]
+    const { TOP, RIGHT, BOTTOM, LEFT } = Direction
+    const getWall = (cell: Block, dir: Direction) => this.getBlock(cell, dir, BlockType.WALL)
+    while (history.length) {
+      curCell.flag = true
+      const tCell = this.getBlock(curCell, TOP)
+      const rCell = this.getBlock(curCell, RIGHT)
+      const bCell = this.getBlock(curCell, BOTTOM)
+      const lCell = this.getBlock(curCell, LEFT)
+      const cells = [tCell, rCell, bCell, lCell].filter(_ => _ && !_.flag)
+      if (cells.length) {
+        history.push(curCell)
+        const rndCell = cells[getRandInt(0, cells.length - 1)]
+        let wall
+        if (rndCell === tCell) {
+          wall = getWall(curCell, TOP)
+          curCell = tCell
+        } else if (rndCell === rCell) {
+          wall = getWall(curCell, RIGHT)
+          curCell = rCell
+        } else if (rndCell === bCell) {
+          wall = getWall(curCell, BOTTOM)
+          curCell = bCell
+        } else {
+          wall = getWall(curCell, LEFT)
+          curCell = lCell
+        }
+        wall.type = BlockType.CELL
+      } else {
+        curCell = history.pop() as Block
+      }
+    }
+    console.log(Date.now() - startTime)
+  }
+
+  genMap2 () {
+    const startTime = Date.now()
     const waitCheckCells = [this.grid[0][0]]
     const { TOP, RIGHT, BOTTOM, LEFT } = Direction
     let count = 0
@@ -276,7 +315,8 @@ class Game {
   }
 
   onResize () {
-
+    this.updateSize()
+    this.drawUI()
   }
 
   onKeyup (event: KeyboardEvent) {

@@ -124,3 +124,7 @@ export const roundReact = (ctx: CanvasRenderingContext2D, x: number, y: number, 
   ctx.arcTo(x, y, x + w, y, r)
   ctx.closePath()
 }
+
+export const timerPromise = (duration: number) => new Promise(resolve => {
+  setTimeout(resolve, duration)
+})
