@@ -49,10 +49,14 @@ class Game {
   private aniFrame: number | undefined = undefined
   private gameHandle: HTMLDivElement
   private wallColor = '#515a6e'
+  private gameCvs
+  private gameCtx
 
   constructor (private cvs: HTMLCanvasElement, private callbacks: GameCallbacks = {}) {
     this.ctx = cvs.getContext('2d') as CanvasRenderingContext2D
     this.pixRatio = getPixRatio(this.ctx)
+    this.gameCvs = this.createGameCvs(cvs)
+    this.gameCtx = this.gameCvs.getContext('2d') as CanvasRenderingContext2D
     this.gameHandle = this.createController()
   }
 
@@ -68,6 +72,14 @@ class Game {
     this.drawUI()
   }
 
+  createGameCvs (cvs: HTMLCanvasElement) {
+    const gameCvs = document.createElement('canvas')
+    gameCvs.className = styleModule.gameCvs
+    const parentEl = cvs.parentElement as HTMLDivElement
+    parentEl.appendChild(gameCvs)
+    return gameCvs
+  }
+
   updateSize (options: UiOptions = {}) {
     this.cols = options.cols || this.cols || 20
     const width = this.cvs.offsetWidth * this.pixRatio
@@ -81,17 +93,16 @@ class Game {
     this.realCols = this.cols * 2 - 1
     this.cellWidth = cellWidth
     this.wallWidth = wallWidth
-    this.cvs.width = width
-    this.cvs.height = this.rows * (cellWidth + wallWidth) + wallWidth
+    this.cvs.width = this.gameCvs.width = width
+    this.cvs.height = this.gameCvs.height = this.rows * (cellWidth + wallWidth) + wallWidth
   }
 
   getStartPoint () {
-    let col = getRandInt(0, this.grid[0].length - 1)
-    if (col % 2) col -= 1
-    const space = this.cellWidth + this.wallWidth
+    const col = getRandInt(0, this.cols - 1)
+    const { cellWidth, wallWidth } = this
     return {
-      x: col / 2 * space + space / 2,
-      y: space - this.cellWidth / 2
+      x: (cellWidth + wallWidth) * (col + 1 / 2),
+      y: wallWidth + cellWidth / 2 - this.pixRatio / 2
     }
   }
 
@@ -123,7 +134,7 @@ class Game {
   drawEndPosition () {
     const { ctx, cellWidth, wallWidth } = this
     const { x, y } = this.endPoint as Point
-    ctx.clearRect(x, y - 1, cellWidth, wallWidth + 1)
+    ctx.clearRect(x, y, cellWidth, wallWidth + 1)
     ctx.save()
     ctx.strokeStyle = '#0f0'
     ctx.beginPath()
@@ -137,12 +148,12 @@ class Game {
   }
 
   drawBall () {
-    const { ctx } = this
+    const ctx = this.gameCtx
     const { x, y, r } = this.ball as Ball
     ctx.save()
     ctx.fillStyle = '#4298f2'
     ctx.beginPath()
-    ctx.arc(x, y, r, 0, 2 * Math.PI)
+    ctx.arc(x, y - 1, r, 0, 2 * Math.PI)
     ctx.fill()
     ctx.restore()
   }
