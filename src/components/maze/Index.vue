@@ -24,7 +24,7 @@ export default {
     this.game = new Game(this.$refs.canvas as HTMLCanvasElement, {
       onDone: () => {
         alert('恭喜，你走粗来了！')
-        this.game?.start()
+        this.game?.start({ cols: this.game.cols + 2, rows: this.game.rows + 2 })
       }
     })
     this.game.start()

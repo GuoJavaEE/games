@@ -1,4 +1,6 @@
-import { genArr, getPixRatio, getRandInt } from "../../utils"
+// @ts-ignore
+import Color from 'color'
+import { delayCall, genArr, getPixRatio, getRandInt } from "../../utils"
 import styleModule from './style.module.less'
 
 interface GameCallbacks {
@@ -34,11 +36,11 @@ enum Direction { TOP, RIGHT, BOTTOM, LEFT }
 class Game {
   private ctx
   private pixRatio
-  private rows = 0
-  private cols = 0
+  rows = 0
+  cols = 0
   private realRows = 0
   private realCols = 0
-  private wallWidth = 0
+  wallWidth = 0
   private cellWidth = 0
   private grid: Block[][] = []
   private startPoint: Point | undefined
@@ -49,6 +51,7 @@ class Game {
   private aniFrame: number | undefined = undefined
   private gameHandle: HTMLDivElement
   private wallColor = '#515a6e'
+  private wayOutColor = '#0f0'
   private gameCvs
   private gameCtx
 
@@ -58,6 +61,7 @@ class Game {
     this.gameCvs = this.createGameCvs(cvs)
     this.gameCtx = this.gameCvs.getContext('2d') as CanvasRenderingContext2D
     this.gameHandle = this.createController()
+    this.addListeners()
   }
 
   start (options: UiOptions = {}) {
@@ -72,7 +76,7 @@ class Game {
     this.drawUI()
   }
 
-  createGameCvs (cvs: HTMLCanvasElement) {
+  private createGameCvs (cvs: HTMLCanvasElement) {
     const gameCvs = document.createElement('canvas')
     gameCvs.className = styleModule.gameCvs
     const parentEl = cvs.parentElement as HTMLDivElement
@@ -80,8 +84,8 @@ class Game {
     return gameCvs
   }
 
-  updateSize (options: UiOptions = {}) {
-    this.cols = options.cols || this.cols || 20
+  private updateSize (options: UiOptions = {}) {
+    this.cols = options.cols || this.cols || 16
     const width = this.cvs.offsetWidth * this.pixRatio
     const maxWallWidth = width / (this.cols * 2 + 1)
     const wallWidth = Math.min(maxWallWidth, options.wallWidth || this.pixRatio * 5)
@@ -97,7 +101,7 @@ class Game {
     this.cvs.height = this.gameCvs.height = this.rows * (cellWidth + wallWidth) + wallWidth
   }
 
-  getStartPoint () {
+  private getStartPoint () {
     const col = getRandInt(0, this.cols - 1)
     const { cellWidth, wallWidth } = this
     return {
@@ -106,18 +110,16 @@ class Game {
     }
   }
 
-  getEndPoint () {
-    const row = this.grid.length - 1
-    let col = getRandInt(0, this.grid[row].length - 1)
-    if (col % 2) col -= 1
-    const space = this.cellWidth + this.wallWidth
+  private getEndPoint () {
+    const col = getRandInt(0, this.cols - 1)
+    const { cellWidth, wallWidth } = this
     return {
-      x: col / 2 * space + this.wallWidth / 2,
+      x: (cellWidth + wallWidth) * col + wallWidth / 2,
       y: this.cvs.height - this.wallWidth
     }
   }
-
-  drawStartPosition () {
+ 
+  private drawStartPosition () {
     const { ctx, wallWidth, cellWidth } = this
     const { x, y } = this.startPoint as Point
     ctx.save()
@@ -131,12 +133,12 @@ class Game {
     ctx.restore()
   }
 
-  drawEndPosition () {
+  private drawEndPosition () {
     const { ctx, cellWidth, wallWidth } = this
     const { x, y } = this.endPoint as Point
-    ctx.clearRect(x, y, cellWidth, wallWidth + 1)
+    ctx.clearRect(x, y - 1, cellWidth, wallWidth + 1)
     ctx.save()
-    ctx.strokeStyle = '#0f0'
+    ctx.strokeStyle = this.wayOutColor
     ctx.beginPath()
     ctx.moveTo(x + cellWidth / 5, y - cellWidth * 2 / 5)
     ctx.lineTo(x + cellWidth / 2, y)
@@ -147,9 +149,10 @@ class Game {
     ctx.restore()
   }
 
-  drawBall () {
+  private drawBall () {
     const ctx = this.gameCtx
     const { x, y, r } = this.ball as Ball
+    ctx.clearRect(0, 0, this.cvs.width, this.cvs.height)
     ctx.save()
     ctx.fillStyle = '#4298f2'
     ctx.beginPath()
@@ -158,7 +161,7 @@ class Game {
     ctx.restore()
   }
 
-  drawUI () {
+  private drawUI () {
     const { cvs, ctx, wallWidth } = this
     ctx.clearRect(0, 0, cvs.width, cvs.height)
     this.drawStartPosition()
@@ -184,7 +187,7 @@ class Game {
     this.drawBall()
   }
 
-  getWallCoord (wall: Block) {
+  private getWallCoord (wall: Block) {
     let x1
     let y1
     let x2
@@ -205,7 +208,7 @@ class Game {
     return { x1, y1, x2, y2 }
   }
 
-  genGrid () {
+  private genGrid () {
     const grid: Block[][] = []
     const { realRows, realCols } = this
     for (let row = 0; row < realRows; row++) {
@@ -221,7 +224,7 @@ class Game {
     return grid
   }
 
-  getBlock (cell: Block, dir: Direction, type = BlockType.CELL) {
+  private getBlock (cell: Block, dir: Direction, type = BlockType.CELL) {
     const { grid } = this
     const get = (row: number, col: number) => grid[row] && grid[row][col]
     const { row, col } = cell
@@ -235,7 +238,7 @@ class Game {
           : get(row, col - step)
   }
 
-  genMap () {
+  private genMap () {
     const startTime = Date.now()
     let curCell: Block = this.grid[0][0]
     const history: Block[] = [curCell]
@@ -273,7 +276,7 @@ class Game {
     console.log(Date.now() - startTime)
   }
 
-  createController () {
+  private createController () {
     const div = document.createElement('div')
     div.className = styleModule.gameHandle
     div.innerHTML = genArr(4).map(_ => '<a></a>').join('')
@@ -281,26 +284,113 @@ class Game {
     return div
   }
 
-  stopTimer () {
+  private stopTimer () {
     clearTimeout(this.tid)
     cancelAnimationFrame(this.aniFrame as number)
     this.tid = this.aniFrame = undefined
   }
 
-  move (dir: Direction) {
+  private isWall (pixData: Uint8ClampedArray) {
+    for (let i = 0, len = pixData.length; i < len; i += 4) {
+      const color = new Color([pixData[i], pixData[i + 1], pixData[i + 2]]).toString()
+      if (color === new Color(this.wallColor).toString()) {
+        return true
+      }
+    }
+  }
+
+  private isDone () {
+    const { cellWidth } = this
+    const { x: x1, y: y1 } = this.ball as Ball
+    const { x, y } = this.endPoint as Point
+    const x2 = x + cellWidth * .5
+    const y2 = y - cellWidth * .5
+    return Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2) < Math.pow(cellWidth * .5, 2)
+  }
+
+  private moveUp () {
+    const speed = this.moveSpeed
+    const getPixData = () => {
+      const { x, y, r } = this.ball as Ball
+      return this.ctx.getImageData(x - r, y - r - speed, r * 2, speed).data
+    }
+    if (this.isWall(getPixData())) return
+    (this.ball as Ball).y -= speed
+    if (this.isWall(getPixData())) {
+      (this.ball as Ball).y += 1
+    }
+  }
+
+  private moveRight () {
+    const speed = this.moveSpeed
+    const getPixData = () => {
+      const { x, y, r } = this.ball as Ball
+      return this.ctx.getImageData(x + r, y - r, speed, r * 2).data
+    }
+    if (this.isWall(getPixData())) return
+    (this.ball as Ball).x += speed
+    if (this.isWall(getPixData())) {
+      (this.ball as Ball).x -= 1
+    }
+  }
+
+  private moveDown () {
+    const speed = this.moveSpeed
+    const getPixData = () => {
+      const { x, y, r } = this.ball as Ball
+      return this.ctx.getImageData(x - r, y + r, r * 2, speed).data
+    }
+    if (this.isWall(getPixData())) return
+    (this.ball as Ball).y += speed
+    if (this.isWall(getPixData())) {
+      (this.ball as Ball).y -= 1
+    }
+  }
+
+  private moveLeft () {
+    const speed = this.moveSpeed
+    const getPixData = () => {
+      const { x, y, r } = this.ball as Ball
+      return this.ctx.getImageData(x - r - speed, y - r, speed, r * 2).data
+    }
+    if (this.isWall(getPixData())) return
+    (this.ball as Ball).x -= speed
+    if (this.isWall(getPixData())) {
+      (this.ball as Ball).x += 1
+    }
+  }
+
+  private move (dir: Direction) {
+    if (this.tid || this.aniFrame) return
+    const speed = this.moveSpeed
+    const { TOP, RIGHT, BOTTOM, LEFT } = Direction
+    const action = { [TOP]: 'moveUp', [RIGHT]: 'moveRight', [BOTTOM]: 'moveDown', [LEFT]: 'moveLeft' }[dir]
+    const moveFn = () => {
+      // @ts-ignore
+      this[action]()
+      this.drawBall()
+    }
+    const animate = () => {
+      if (this.isDone()) {
+        return delayCall(this.callbacks.onDone)
+      }
+      moveFn()
+      this.aniFrame = requestAnimationFrame(animate)
+    }
+    moveFn()
+    this.tid = setTimeout(animate, 60)
+  }
+
+  private onHandleTouchstart (event: TouchEvent) {
 
   }
 
-  onHandleTouchstart (event: TouchEvent) {
-
-  }
-
-  onResize () {
+  private onResize () {
     this.updateSize()
     this.drawUI()
   }
 
-  onKeyup (event: KeyboardEvent) {
+  private onKeydown (event: KeyboardEvent) {
     const { keyCode } = event
     const T = [87, 38]
     const R = [68, 39]
@@ -316,17 +406,22 @@ class Game {
     } else if (L.includes(keyCode)) {
       this.move(LEFT)
     }
+    const onKeyup = () => {
+      this.stopTimer()
+      document.removeEventListener('keyup', onKeyup)
+    }
+    document.addEventListener('keyup', onKeyup)
   }
 
-  addListeners () {
+  private addListeners () {
     window.addEventListener('resize', this.onResize.bind(this))
-    document.addEventListener('keyup', this.onKeyup.bind(this))
+    document.addEventListener('keydown', this.onKeydown.bind(this))
     this.gameHandle.addEventListener('touchstart', this.onHandleTouchstart.bind(this))
   }
 
   removeListeners () {
     window.removeEventListener('resize', this.onResize)
-    document.removeEventListener('keyup', this.onKeyup)
+    document.removeEventListener('keydown', this.onKeydown)
     this.gameHandle.removeEventListener('touchstart', this.onHandleTouchstart)
   }
 }
