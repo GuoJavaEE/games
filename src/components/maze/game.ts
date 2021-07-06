@@ -49,7 +49,7 @@ class Game {
   private moveSpeed = 0
   private tid: number | undefined = undefined
   private aniFrame: number | undefined = undefined
-  private gameHandle: HTMLDivElement
+  private gameHandle: HTMLDivElement | undefined
   private wallColor = '#515a6e'
   private wayOutColor = '#0f0'
   private gameCvs
@@ -60,7 +60,9 @@ class Game {
     this.pixRatio = getPixRatio(this.ctx)
     this.gameCvs = this.createGameCvs(cvs)
     this.gameCtx = this.gameCvs.getContext('2d') as CanvasRenderingContext2D
-    this.gameHandle = this.createController()
+    if ('ontouchstart' in document) {
+      this.gameHandle = this.createController()
+    }
     this.addListeners()
   }
 
@@ -362,7 +364,6 @@ class Game {
 
   private move (dir: Direction) {
     if (this.tid || this.aniFrame) return
-    const speed = this.moveSpeed
     const { TOP, RIGHT, BOTTOM, LEFT } = Direction
     const action = { [TOP]: 'moveUp', [RIGHT]: 'moveRight', [BOTTOM]: 'moveDown', [LEFT]: 'moveLeft' }[dir]
     const moveFn = () => {
@@ -382,12 +383,25 @@ class Game {
   }
 
   private onHandleTouchstart (event: TouchEvent) {
-
-  }
-
-  private onResize () {
-    this.updateSize()
-    this.drawUI()
+    event.preventDefault()
+    const { target } = event
+    const els = Array.from((this.gameHandle as HTMLDivElement).querySelectorAll('a'))
+    const { TOP, RIGHT, BOTTOM, LEFT } = Direction
+    const index = els.indexOf(target as any)
+    if (index === 0) {
+      this.move(TOP)
+    } else if (index === 1) {
+      this.move(RIGHT)
+    } else if (index === 2) {
+      this.move(BOTTOM)
+    } else if (index === 3) {
+      this.move(LEFT)
+    }
+    const onTouchend = () => {
+      this.stopTimer()
+      document.removeEventListener('touchend', onTouchend)
+    }
+    document.addEventListener('touchend', onTouchend)
   }
 
   private onKeydown (event: KeyboardEvent) {
@@ -414,15 +428,13 @@ class Game {
   }
 
   private addListeners () {
-    window.addEventListener('resize', this.onResize.bind(this))
     document.addEventListener('keydown', this.onKeydown.bind(this))
-    this.gameHandle.addEventListener('touchstart', this.onHandleTouchstart.bind(this))
+    this.gameHandle && this.gameHandle.addEventListener('touchstart', this.onHandleTouchstart.bind(this))
   }
 
   removeListeners () {
-    window.removeEventListener('resize', this.onResize)
     document.removeEventListener('keydown', this.onKeydown)
-    this.gameHandle.removeEventListener('touchstart', this.onHandleTouchstart)
+    this.gameHandle && this.gameHandle.removeEventListener('touchstart', this.onHandleTouchstart)
   }
 }
 

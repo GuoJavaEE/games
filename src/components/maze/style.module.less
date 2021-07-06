@@ -1,5 +1,38 @@
 .gameHandle {
+  @size: 3em;
+  @top: 65%;
   color: aliceblue;
+  position: relative;
+  width: @size;
+  height: @size;
+  margin: 1em auto;
+  a {
+    user-select: none;
+    position: absolute;
+    width: inherit;
+    height: inherit;
+    background: rgba(0, 0, 0, .6) url('./img/up.png') no-repeat center center;
+    background-size: @size * 0.6;
+    border-radius: @size;
+    transition: background-color .2s ease-in-out;
+    &:nth-child(2) {
+      top: @top;
+      left: 85%;
+      transform: rotate(90deg);
+    }
+    &:nth-child(3) {
+      top: @top * 2;
+      transform: rotate(180deg);
+    }
+    &:nth-child(4) {
+      top: @top;
+      left: -85%;
+      transform: rotate(-90deg);
+    }
+    &:hover, &:active {
+      background-color: rgba(0, 0, 0, .8);
+    }
+  }
 }
 
 .gameCvs {
